@@ -59,6 +59,7 @@
         }
         .notification.success { background-color: #28a745; }
         .notification.error { background-color: #dc3545; }
+        .notification.wait { background-color: #17a2b8; } /* New style for the wait message */
         
         #advanced-settings-toggle svg {
             transition: transform 0.3s;
@@ -95,8 +96,6 @@
             background-color: #EBF5FF;
             border-color: var(--primary-color);
         }
-
-        #output-page { display: none; }
         
         /* Styles for the new output page layout */
         #output-page-grid {
@@ -285,8 +284,8 @@
         </main>
     </div>
 
-    <!-- NEW: Updated Output Page Structure -->
-    <div id="output-page" class="p-4 md:p-8">
+    <!-- Updated Output Page Structure -->
+    <div id="output-page" class="hidden p-4 md:p-8">
         <div id="output-page-grid">
             <!-- Main Content Column -->
             <div id="output-content-wrapper" class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
@@ -363,38 +362,52 @@
                 document.getElementById('generate-topic-ideas').addEventListener('click', generateTopicIdeas);
                 document.getElementById('create-brief').addEventListener('click', createContentBrief);
 
-                // --- FIXED: Event Delegation for Output Page Buttons ---
+                // Event Delegation for Output Page Buttons
                 outputPage.addEventListener('click', (e) => {
+                    const targetId = e.target.id;
                     const topic = document.getElementById('blog-topic').value || 'blog-post';
-                    if (e.target.id === 'back-to-editor') {
-                        mainInterface.style.display = 'block';
-                        outputPage.style.display = 'none';
-                    } else if (e.target.id === 'copy-output-html') {
-                        const textarea = document.createElement('textarea');
-                        textarea.value = currentGeneratedHtml;
-                        document.body.appendChild(textarea);
-                        textarea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(textarea);
-                        showNotification('HTML copied to clipboard!', 'success');
-                    } else if (e.target.id === 'download-output-pdf') {
-                         const element = document.createElement('div');
-                         element.innerHTML = getDownloadableHtml(currentGeneratedHtml, topic);
-                         html2pdf(element.querySelector('body'), {
-                             margin: 0.5, filename: `${topic.replace(/ /g, '_')}.pdf`,
-                             image: { type: 'jpeg', quality: 0.98 },
-                             html2canvas: { scale: 2 },
-                             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-                         });
-                    } else if (e.target.id === 'download-output-html') {
-                        const fullHtml = getDownloadableHtml(currentGeneratedHtml, topic);
-                        const blob = new Blob([fullHtml], { type: 'text/html' });
-                        const a = document.createElement('a');
-                        a.href = URL.createObjectURL(blob);
-                        a.download = `${topic.replace(/ /g, '_')}.html`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+
+                    switch (targetId) {
+                        case 'back-to-editor':
+                            mainInterface.classList.remove('hidden');
+                            outputPage.classList.add('hidden');
+                            break;
+                        case 'copy-output-html':
+                            const textarea = document.createElement('textarea');
+                            textarea.value = currentGeneratedHtml;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                            showNotification('HTML copied to clipboard!', 'success');
+                            break;
+                        case 'download-output-pdf':
+                            try {
+                                const element = document.createElement('div');
+                                element.innerHTML = getDownloadableHtml(currentGeneratedHtml, topic);
+                                showNotification('Preparing PDF, please wait...', 'wait', 5000);
+                                html2pdf(element.querySelector('body'), {
+                                    margin: 0.5,
+                                    filename: `${topic.replace(/ /g, '_')}.pdf`,
+                                    image: { type: 'jpeg', quality: 0.98 },
+                                    html2canvas: { scale: 2, useCORS: true },
+                                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                                });
+                            } catch (error) {
+                                console.error("PDF generation failed:", error);
+                                showNotification('Could not generate PDF. Please try downloading as HTML.', 'error');
+                            }
+                            break;
+                        case 'download-output-html':
+                            const fullHtml = getDownloadableHtml(currentGeneratedHtml, topic);
+                            const blob = new Blob([fullHtml], { type: 'text/html' });
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(blob);
+                            a.download = `${topic.replace(/ /g, '_')}.html`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            break;
                     }
                 });
 
@@ -544,32 +557,25 @@
                     return;
                 }
                 
-                // Construct the prompt
+                showNotification('Generating your blog post... this may take a minute or two.', 'wait', 120000);
+                
                 let prompt = buildGenerationPrompt();
-
-                // Call API
                 let generatedHtml = await callGeminiApi(prompt);
                 
                 if (generatedHtml) {
-                    // --- FIXED: Image Placeholder Replacement ---
-                    generatedHtml = generatedHtml.replace(/```html\n?([\s\S]*?)\n?```/, '$1').trim(); // Clean up markdown code blocks
+                    generatedHtml = generatedHtml.replace(/```html\n?([\s\S]*?)\n?```/, '$1').trim();
                     generatedHtml = generatedHtml.replace(/\[IMAGE-(\d+)\]/g, (match, p1) => {
                         const index = parseInt(p1, 10) - 1;
-                        if (uploadedImages[index]) {
-                            return `<img src="${uploadedImages[index].src}" alt="${uploadedImages[index].alt}" class="my-4 rounded-lg shadow-md">`;
-                        }
-                        return ''; // Remove placeholder if no image is available
+                        return (uploadedImages[index]) ? `<img src="${uploadedImages[index].src}" alt="${uploadedImages[index].alt}" class="my-4 rounded-lg shadow-md">` : '';
                     });
                     
-                    currentGeneratedHtml = generatedHtml; // Save for download/copy functions
+                    currentGeneratedHtml = generatedHtml;
 
-                    // Display content
-                    mainInterface.style.display = 'none';
-                    outputPage.style.display = 'block';
+                    mainInterface.classList.add('hidden');
+                    outputPage.classList.remove('hidden');
                     outputContent.innerHTML = generatedHtml;
                     showNotification('Blog post generated!', 'success');
                     
-                    // --- NEW: Run all analyses and populate sidebar ---
                     runPostGenerationAnalysis(generatedHtml);
                 }
             };
@@ -599,7 +605,6 @@
                     prompt += `\n\nUse the following content brief as a strong guideline:\n\n--- CONTENT BRIEF ---\n${contentBrief}\n--- END BRIEF ---`;
                 }
                 
-                // --- NEW: Image placeholder instruction ---
                 if (uploadedImages.length > 0) {
                     prompt += `\n\nIMPORTANT: To include the images I've provided, insert placeholders like [IMAGE-1], [IMAGE-2], etc., into the text where they would be most appropriate. You have ${uploadedImages.length} images available.`;
                 }
@@ -637,16 +642,12 @@
             };
             
             const runPostGenerationAnalysis = async (htmlContent) => {
-                analysisWidgetsContainer.innerHTML = ''; // Clear previous results
-                
-                // Run analyses in parallel
+                analysisWidgetsContainer.innerHTML = ''; 
                 const [gradeHtml, checklistHtml, densityHtml] = await Promise.all([
                     gradeContent(htmlContent),
                     generateSeoChecklist(htmlContent),
                     calculateAndDisplayKeywordDensity(htmlContent)
                 ]);
-
-                // Append new results
                 if (gradeHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', gradeHtml);
                 if (checklistHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', checklistHtml);
                 if (densityHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', densityHtml);
@@ -655,11 +656,11 @@
             const generateLsiKeywords = async () => {
                 const topic = document.getElementById('blog-topic').value;
                 if (!topic) { showNotification('Please enter a topic first.', 'error'); return; }
-                const prompt = `List 10-15 Latent Semantic Indexing (LSI) keywords for the topic: "${topic}". Return them as a comma-separated list.`;
+                const prompt = `List at least 50 Latent Semantic Indexing (LSI) keywords for the topic: "${topic}". These keywords should be suitable for a natural density of 0.5% to 3% within a blog post. Return them as a single comma-separated list.`;
                 const result = await callGeminiApi(prompt);
                 if (result) {
-                    customKeywordsInput.value = result.replace(/['"]+/g, '').trim(); // Clean quotes
-                    showNotification('LSI keywords generated and added!', 'success');
+                    customKeywordsInput.value = result.replace(/['".*]+/g, '').trim();
+                    showNotification('50+ LSI keywords generated!', 'success');
                 }
             };
 
@@ -696,7 +697,6 @@
                 }
             };
             
-            // --- FIXED: Keyword Density Calculation ---
             const calculateAndDisplayKeywordDensity = async (htmlContent) => {
                 const keywords = customKeywordsInput.value.trim().toLowerCase().split(',').filter(Boolean).map(k => k.trim());
                 if (keywords.length === 0) return '';
@@ -735,30 +735,38 @@
                 return '';
             };
             
-            // --- NEW: On-Page SEO Checklist ---
             const generateSeoChecklist = async (htmlContent) => {
-                const prompt = `Analyze the following HTML content for on-page SEO best practices. Create a checklist of 5-7 key items. For each item, state if it's "Done" or "Needs Improvement" and provide a very brief explanation. Key items to check: H1 tag presence, Meta Description (conceptual), Keyword in Title, Image Alt Tags, and Internal/External Links.
-                
-                Return the result as a simple list. Example:
-                - H1 Tag: Done
-                - Image Alt Tags: Needs Improvement
-                
+                const prompt = `Analyze the following HTML content for on-page SEO best practices. Create a checklist of 5-7 key items. Return a valid JSON array of objects with the keys "item", "status" ("Done" or "Needs Improvement"), and "explanation".
+
+                Key items to check: H1 tag presence, Meta Description (conceptual), Keyword in Title, Image Alt Tags, and Internal/External Links.
+
+                Example JSON response:
+                [
+                  {"item": "H1 Tag", "status": "Done", "explanation": "A single H1 tag is present."},
+                  {"item": "Image Alt Tags", "status": "Needs Improvement", "explanation": "Some images are missing alt attributes."}
+                ]
+
                 HTML Content:
                 ${htmlContent}`;
 
                 const result = await callGeminiApi(prompt);
                 if (result) {
-                    let checklistHtml = '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3>';
-                    const items = result.split('\n').filter(Boolean);
-                    items.forEach(item => {
-                        const isDone = /: done/i.test(item);
-                        const icon = isDone 
-                            ? `<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`
-                            : `<svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 102 0V6zm-1 8a1 1 0 110-2 1 1 0 010 2z" clip-rule="evenodd"></path></svg>`;
-                        checklistHtml += `<div class="checklist-item text-sm">${icon}<span>${item.replace('-', '').trim()}</span></div>`;
-                    });
-                    checklistHtml += '</div>';
-                    return checklistHtml;
+                    try {
+                        const checklistData = JSON.parse(result);
+                        let checklistHtml = '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3>';
+                        checklistData.forEach(item => {
+                            const isDone = item.status === 'Done';
+                            const icon = isDone 
+                                ? `<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`
+                                : `<svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 102 0V6zm-1 8a1 1 0 110-2 1 1 0 010 2z" clip-rule="evenodd"></path></svg>`;
+                            checklistHtml += `<div class="checklist-item text-sm" title="${item.explanation}">${icon}<span><strong>${item.item}:</strong> ${item.status}</span></div>`;
+                        });
+                        checklistHtml += '</div>';
+                        return checklistHtml;
+                    } catch (e) {
+                        console.error("Failed to parse SEO checklist JSON:", e);
+                        return '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3><p class="text-sm text-red-500">Could not retrieve analysis.</p></div>';
+                    }
                 }
                 return '';
             };
