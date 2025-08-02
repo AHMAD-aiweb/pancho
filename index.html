@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SEO Blog Writer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <style>
+        /* Custom Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FFFFFF;
+            color: #1F2937;
+        }
+
+        /* Highlight Colors */
+        :root {
+            --primary-color: #2200FF;
+            --secondary-color: #A200FF;
+            --accent-color: #FF00DD;
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            display: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .notification.show {
+            display: block;
+            opacity: 1;
+        }
+        .notification.success { background-color: #28a745; }
+        .notification.error { background-color: #dc3545; }
+        
+        #advanced-settings-toggle svg {
+            transition: transform 0.3s;
+        }
+        #advanced-settings-container.hidden {
+            display: none;
+        }
+        
+        .topic-idea-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .topic-idea-item:hover {
+            background-color: #F3F4F6;
+        }
+        
+        /* Button Colors */
+        .btn-primary { background-color: var(--primary-color) !important; }
+        .btn-primary:hover { background-color: #5233ff !important; }
+        .btn-secondary { background-color: var(--secondary-color) !important; }
+        .btn-secondary:hover { background-color: #b822ff !important; }
+        .btn-accent { background-color: var(--accent-color) !important; }
+        .btn-accent:hover { background-color: #ff2fe6 !important; }
+
+        /* Drag and Drop Area */
+        #drag-drop-zone {
+            border: 2px dashed #D1D5DB;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        #drag-drop-zone.drag-over {
+            background-color: #EBF5FF;
+            border-color: var(--primary-color);
+        }
+
+        #output-page { display: none; }
+        
+        /* Styles for the new output page layout */
+        #output-page-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        @media (min-width: 1024px) {
+            #output-page-grid {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        #output-sidebar .analysis-widget {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .checklist-item svg {
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
+    </style>
+</head>
+<body class="bg-white text-gray-800">
+
+    <div id="loader" class="loader"></div>
+    <div id="notification" class="notification"></div>
+
+    <div id="main-interface">
+        <!-- Header -->
+        <header class="bg-white shadow-md p-4 flex justify-between items-center border-b border-gray-200">
+            <div class="flex items-center">
+                <svg class="w-8 h-8 mr-2" style="color: var(--primary-color);" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z"></path></svg>
+                <h1 class="text-2xl font-bold text-gray-900">AI SEO Blog Writer</h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Controls Column -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                <!-- AI Generation Controls -->
+                <div class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <h2 class="text-xl font-semibold my-4 text-gray-900">AI Content Generation</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="blog-topic" placeholder="Enter your blog topic or keyword" class="w-full p-2 border rounded bg-white border-gray-300">
+                        <select id="blog-tone" class="w-full p-2 border rounded bg-white border-gray-300">
+                            <option>Professional</option><option>Friendly</option><option>Casual</option><option>Persuasive</option><option>Technical</option><option>Informative</option><option>Storytelling</option><option>Review</option><option>News</option><option>Humorous</option><option>Empathetic</option><option>Tutorial</option><option>Academic</option>
+                        </select>
+                    </div>
+                     <div class="mt-4">
+                        <label for="content-brief-display" class="font-semibold mb-2 block text-gray-800">Content Brief</label>
+                        <textarea id="content-brief-display" rows="6" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Click 'Create Content Brief' in the sidebar to generate a brief here..."></textarea>
+                    </div>
+                    <div class="mt-4">
+                        <label for="custom-semantic-keywords" class="font-semibold mb-2 block text-gray-800">Your Semantic Keywords & Density Tracking</label>
+                        <textarea id="custom-semantic-keywords" rows="3" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Enter comma-separated keywords to include and track..."></textarea>
+                         <div id="keyword-density-result" class="mt-2 text-sm text-gray-600">Keyword density will be analyzed on the output page.</div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block mb-2 font-medium text-gray-800">Blog Length:</label>
+                        <div class="flex items-center space-x-4 flex-wrap text-gray-700">
+                            <label><input type="radio" name="blog-length" value="short" checked class="mr-1"> Short (~500)</label>
+                            <label><input type="radio" name="blog-length" value="medium" class="mr-1"> Medium (~1000)</label>
+                            <label><input type="radio" name="blog-length" value="long" class="mr-1"> Long (~1500)</label>
+                            <label class="flex items-center"><input type="radio" name="blog-length" value="custom" class="mr-1"> Custom:</label>
+                            <input type="number" id="custom-word-count" class="hidden w-24 p-1 border rounded bg-white border-gray-300" placeholder="e.g., 800" max="2500">
+                        </div>
+                    </div>
+
+                    <!-- Advanced Settings -->
+                    <div class="mt-4">
+                        <button id="advanced-settings-toggle" class="w-full text-left font-bold text-gray-800 flex justify-between items-center bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded">
+                            <span>Advanced Settings</span>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="advanced-settings-container" class="hidden mt-4 space-y-4">
+                            <!-- Brand Voice -->
+                            <div>
+                                <label for="brand-voice" class="font-semibold mb-2 block text-gray-800">Brand Voice & Tone Profile</label>
+                                <textarea id="brand-voice" rows="3" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="e.g., Witty and informal, uses emojis, avoids jargon..."></textarea>
+                            </div>
+                            <!-- Article Type -->
+                            <div>
+                                <label for="article-type" class="font-semibold mb-2 block text-gray-800">Article Type</label>
+                                <select id="article-type" class="w-full p-2 border rounded bg-white border-gray-300">
+                                    <option>Blog Post</option><option>News Article</option><option>How-to Guide</option><option>Listicle</option><option>Review</option><option>Case Study</option>
+                                </select>
+                            </div>
+                            <!-- Text Readability -->
+                            <div>
+                                <label for="text-readability" class="font-semibold mb-2 block text-gray-800">Text Readability</label>
+                                <select id="text-readability" class="w-full p-2 border rounded bg-white border-gray-300">
+                                    <option>Easy</option><option>Standard</option><option>Expert</option>
+                                </select>
+                            </div>
+                            <!-- Target Country -->
+                            <div>
+                                <label for="target-country" class="font-semibold mb-2 block text-gray-800">Target Country</label>
+                                <select id="target-country" class="w-full p-2 border rounded bg-white border-gray-300"></select>
+                            </div>
+                            <!-- Output Language -->
+                            <div>
+                                <label for="output-language" class="font-semibold mb-2 block text-gray-800">Output Language</label>
+                                <select id="output-language" class="w-full p-2 border rounded bg-white border-gray-300"></select>
+                            </div>
+                            <!-- Content Elements -->
+                            <div>
+                                <label class="font-semibold mb-2 block text-gray-800">Content Elements</label>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-gray-700">
+                                    <label class="flex items-center"><input type="checkbox" id="include-conclusion" class="mr-2" checked>Conclusion</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-tables" class="mr-2">Tables</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-h1" class="mr-2" checked>H1</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-h2" class="mr-2" checked>H2</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-h3" class="mr-2" checked>H3</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-lists" class="mr-2" checked>Lists</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-italics" class="mr-2" checked>Italics</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-quotes" class="mr-2">Quotes</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-takeaways" class="mr-2">Key Takeaways</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-faq" class="mr-2">FAQ</label>
+                                    <label class="flex items-center"><input type="checkbox" id="include-bold" class="mr-2" checked>Bold</label>
+                                </div>
+                            </div>
+                            <!-- Target Website URL -->
+                            <div>
+                                <label for="target-url-input" class="font-semibold mb-2 block text-gray-800">Target Website URLs</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="target-url-input" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="https://example.com/article1">
+                                    <button id="add-target-url" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Add</button>
+                                </div>
+                                <div id="target-urls-container" class="mt-2 space-y-2"></div>
+                            </div>
+                            <!-- Image URL -->
+                            <div>
+                                 <label for="image-url-input" class="font-semibold mb-2 block text-gray-800">Image URLs (comma-separated)</label>
+                                 <div class="flex gap-2">
+                                     <input type="text" id="image-url-input" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg">
+                                     <button id="add-image-from-url" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Add</button>
+                                 </div>
+                            </div>
+                            <!-- Drag and Drop Image Upload -->
+                            <div>
+                                <label class="font-semibold mb-2 block text-gray-800">Drag-and-Drop Image Upload</label>
+                                <div id="drag-drop-zone" class="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                                    <p class="text-gray-500">Drag & drop images here</p>
+                                </div>
+                                <div id="image-preview-container" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <!-- Image previews will be added here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="generate-blog" class="mt-6 w-full btn-primary text-white font-bold py-2 px-4 rounded">Generate & Open Blog Post</button>
+                </div>
+            </div>
+
+            <!-- SEO Sidebar -->
+            <div class="bg-white p-6 rounded-lg shadow-lg h-fit space-y-4 border border-gray-200">
+                <h2 class="text-xl font-semibold mb-2 border-b pb-2 border-gray-200">SEO Analysis & Tools</h2>
+                <div class="border-b pb-4 border-gray-200">
+                    <h3 class="font-semibold mb-2">Topic Ideas</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="topic-idea-keyword" placeholder="Enter a broad keyword" class="w-full p-2 border rounded bg-white border-gray-300">
+                        <button id="generate-topic-ideas" class="btn-accent text-white font-bold py-2 px-4 rounded text-sm">Ideas</button>
+                    </div>
+                    <div id="topic-ideas-result" class="mt-2 text-sm space-y-1"></div>
+                </div>
+                <div class="border-b pb-4 border-gray-200">
+                    <h3 class="font-semibold mb-2">LSI Keyword Suggestions</h3>
+                    <button id="generate-lsi" class="w-full btn-secondary text-white font-bold py-2 px-4 rounded text-sm">Generate LSI Keywords</button>
+                </div>
+                <div class="border-b pb-4 border-gray-200">
+                    <h3 class="font-semibold mb-2">Content Brief</h3>
+                     <button id="create-brief" class="w-full btn-primary text-white font-bold py-2 px-4 rounded text-sm">Create Content Brief</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- NEW: Updated Output Page Structure -->
+    <div id="output-page" class="p-4 md:p-8">
+        <div id="output-page-grid">
+            <!-- Main Content Column -->
+            <div id="output-content-wrapper" class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                 <div id="output-content" class="prose lg:prose-xl max-w-none"></div>
+            </div>
+            <!-- Sidebar Column -->
+            <div id="output-sidebar">
+                <!-- Action Buttons -->
+                <div id="output-controls" class="space-y-2 mb-6">
+                    <button id="back-to-editor" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back to Editor</button>
+                    <button id="copy-output-html" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Copy HTML</button>
+                    <button id="download-output-pdf" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Download PDF</button>
+                    <button id="download-output-html" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Download HTML</button>
+                </div>
+                <!-- Analysis Widgets will be injected here -->
+                <div id="analysis-widgets-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENTS ---
+            const loader = document.getElementById('loader');
+            const notification = document.getElementById('notification');
+            const blogLengthRadios = document.querySelectorAll('input[name="blog-length"]');
+            const customWordCountInput = document.getElementById('custom-word-count');
+            const advancedSettingsToggle = document.getElementById('advanced-settings-toggle');
+            const advancedSettingsContainer = document.getElementById('advanced-settings-container');
+            const countryDropdown = document.getElementById('target-country');
+            const languageDropdown = document.getElementById('output-language');
+            const customKeywordsInput = document.getElementById('custom-semantic-keywords');
+            const dragDropZone = document.getElementById('drag-drop-zone');
+            const mainInterface = document.getElementById('main-interface');
+            const outputPage = document.getElementById('output-page');
+            const outputContent = document.getElementById('output-content');
+            const outputControls = document.getElementById('output-controls');
+            const analysisWidgetsContainer = document.getElementById('analysis-widgets-container');
+
+            // --- APPLICATION STATE ---
+            let uploadedImages = [];
+            let currentGeneratedHtml = ''; // Store the latest generated HTML
+
+            // --- INITIALIZATION ---
+            const init = () => {
+                populateCountries();
+                populateLanguages();
+                addEventListeners();
+            };
+            
+            // --- EVENT LISTENERS SETUP ---
+            const addEventListeners = () => {
+                advancedSettingsToggle.addEventListener('click', () => {
+                    const isHidden = advancedSettingsContainer.classList.toggle('hidden');
+                    advancedSettingsToggle.querySelector('svg').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+                });
+
+                blogLengthRadios.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        customWordCountInput.classList.toggle('hidden', radio.value !== 'custom');
+                        if (radio.value === 'custom') customWordCountInput.focus();
+                    });
+                });
+
+                customWordCountInput.addEventListener('input', () => {
+                    if (parseInt(customWordCountInput.value) > 2500) {
+                        customWordCountInput.value = '2500';
+                        showNotification('Maximum word count is 2500.', 'error');
+                    }
+                });
+
+                document.getElementById('generate-blog').addEventListener('click', generateBlog);
+                document.getElementById('generate-lsi').addEventListener('click', generateLsiKeywords);
+                document.getElementById('generate-topic-ideas').addEventListener('click', generateTopicIdeas);
+                document.getElementById('create-brief').addEventListener('click', createContentBrief);
+
+                // --- FIXED: Event Delegation for Output Page Buttons ---
+                outputPage.addEventListener('click', (e) => {
+                    const topic = document.getElementById('blog-topic').value || 'blog-post';
+                    if (e.target.id === 'back-to-editor') {
+                        mainInterface.style.display = 'block';
+                        outputPage.style.display = 'none';
+                    } else if (e.target.id === 'copy-output-html') {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = currentGeneratedHtml;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        showNotification('HTML copied to clipboard!', 'success');
+                    } else if (e.target.id === 'download-output-pdf') {
+                         const element = document.createElement('div');
+                         element.innerHTML = getDownloadableHtml(currentGeneratedHtml, topic);
+                         html2pdf(element.querySelector('body'), {
+                             margin: 0.5, filename: `${topic.replace(/ /g, '_')}.pdf`,
+                             image: { type: 'jpeg', quality: 0.98 },
+                             html2canvas: { scale: 2 },
+                             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                         });
+                    } else if (e.target.id === 'download-output-html') {
+                        const fullHtml = getDownloadableHtml(currentGeneratedHtml, topic);
+                        const blob = new Blob([fullHtml], { type: 'text/html' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `${topic.replace(/ /g, '_')}.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
+                });
+
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dragDropZone.addEventListener(eventName, preventDefaults, false));
+                ['dragenter', 'dragover'].forEach(eventName => dragDropZone.addEventListener(eventName, () => dragDropZone.classList.add('drag-over'), false));
+                ['dragleave', 'drop'].forEach(eventName => dragDropZone.addEventListener(eventName, () => dragDropZone.classList.remove('drag-over'), false));
+                dragDropZone.addEventListener('drop', handleDrop, false);
+                document.getElementById('add-image-from-url').addEventListener('click', addImagesFromUrl);
+                document.getElementById('add-target-url').addEventListener('click', addTargetUrl);
+            };
+
+            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+            function handleDrop(e) { handleFiles(e.dataTransfer.files); }
+
+            function handleFiles(files) {
+                [...files].forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            uploadedImages.push({ src: e.target.result, alt: file.name });
+                            renderImagePreviews();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+                showNotification(`${files.length} image(s) added!`, 'success');
+            }
+            
+            function addImagesFromUrl() {
+                const urlInput = document.getElementById('image-url-input');
+                const urls = urlInput.value.split(',').map(url => url.trim()).filter(Boolean);
+                if (urls.length > 0) {
+                    urls.forEach(url => uploadedImages.push({ src: url, alt: "Blog Image" }));
+                    urlInput.value = '';
+                    renderImagePreviews();
+                    showNotification(`${urls.length} image(s) added!`, 'success');
+                } else {
+                    showNotification('Please enter at least one valid image URL.', 'error');
+                }
+            }
+
+            function renderImagePreviews() {
+                const container = document.getElementById('image-preview-container');
+                container.innerHTML = '';
+                uploadedImages.forEach((image, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'relative';
+                    const img = document.createElement('img');
+                    img.src = image.src;
+                    img.alt = image.alt;
+                    img.className = 'w-full h-auto rounded-lg shadow-md';
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = '×';
+                    removeBtn.className = 'absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-lg leading-none';
+                    removeBtn.onclick = () => {
+                        uploadedImages.splice(index, 1);
+                        renderImagePreviews();
+                    };
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(removeBtn);
+                    container.appendChild(wrapper);
+                });
+            }
+            
+            function addTargetUrl() {
+                const input = document.getElementById('target-url-input');
+                const url = input.value.trim();
+                if (url) {
+                    const container = document.getElementById('target-urls-container');
+                    const urlItem = document.createElement('div');
+                    urlItem.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
+                    urlItem.innerHTML = `<span class="text-sm text-gray-700 truncate">${url}</span><button class="text-red-500 font-bold text-lg">&times;</button>`;
+                    urlItem.querySelector('button').onclick = () => urlItem.remove();
+                    container.appendChild(urlItem);
+                    input.value = '';
+                } else {
+                    showNotification('Please enter a valid URL.', 'error');
+                }
+            }
+            
+            // --- UI UTILITIES ---
+            const showLoader = (show) => { loader.style.display = show ? 'block' : 'none'; };
+            const showNotification = (message, type = 'success', duration = 3000) => {
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.classList.add('show');
+                setTimeout(() => notification.classList.remove('show'), duration);
+            };
+
+            const populateCountries = () => {
+                const countries = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo, Democratic Republic of the","Congo, Republic of the","Costa Rica","Cote d'Ivoire","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar (Burma)","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+                countries.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country; option.textContent = country;
+                    countryDropdown.appendChild(option);
+                });
+                countryDropdown.value = "United States";
+            };
+
+            const populateLanguages = () => {
+                const languages = ["English", "Spanish", "French", "German", "Chinese (Simplified)", "Japanese", "Russian", "Arabic", "Portuguese", "Hindi", "Bengali", "Italian", "Dutch", "Korean", "Turkish", "Polish", "Swedish", "Norwegian", "Danish", "Finnish", "Urdu"];
+                languages.forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang; option.textContent = lang;
+                    languageDropdown.appendChild(option);
+                });
+            };
+
+            // --- GEMINI API INTEGRATION ---
+            async function callGeminiApi(prompt) {
+                console.log("Calling Gemini API...");
+                showLoader(true);
+                const apiKey = "AIzaSyBYP_Az0Dy6lPlCDJv0obnjXo1H2rmdx4Y"; // The environment provides the key
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`API Error: ${response.statusText} - ${errorBody}`);
+                    }
+                    const result = await response.json();
+                    if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        console.error("Invalid API response structure:", result);
+                        throw new Error("Invalid API response structure.");
+                    }
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                    showNotification(`Error: ${error.message}`, 'error', 5000);
+                    return null;
+                } finally {
+                    showLoader(false);
+                }
+            }
+
+            // --- AI FEATURE IMPLEMENTATIONS ---
+            const generateBlog = async () => {
+                const topic = document.getElementById('blog-topic').value;
+                if (!topic) {
+                    showNotification('Please enter a blog topic.', 'error');
+                    return;
+                }
+                
+                // Construct the prompt
+                let prompt = buildGenerationPrompt();
+
+                // Call API
+                let generatedHtml = await callGeminiApi(prompt);
+                
+                if (generatedHtml) {
+                    // --- FIXED: Image Placeholder Replacement ---
+                    generatedHtml = generatedHtml.replace(/```html\n?([\s\S]*?)\n?```/, '$1').trim(); // Clean up markdown code blocks
+                    generatedHtml = generatedHtml.replace(/\[IMAGE-(\d+)\]/g, (match, p1) => {
+                        const index = parseInt(p1, 10) - 1;
+                        if (uploadedImages[index]) {
+                            return `<img src="${uploadedImages[index].src}" alt="${uploadedImages[index].alt}" class="my-4 rounded-lg shadow-md">`;
+                        }
+                        return ''; // Remove placeholder if no image is available
+                    });
+                    
+                    currentGeneratedHtml = generatedHtml; // Save for download/copy functions
+
+                    // Display content
+                    mainInterface.style.display = 'none';
+                    outputPage.style.display = 'block';
+                    outputContent.innerHTML = generatedHtml;
+                    showNotification('Blog post generated!', 'success');
+                    
+                    // --- NEW: Run all analyses and populate sidebar ---
+                    runPostGenerationAnalysis(generatedHtml);
+                }
+            };
+
+            const buildGenerationPrompt = () => {
+                const topic = document.getElementById('blog-topic').value;
+                const tone = document.getElementById('blog-tone').value;
+                const lengthValue = document.querySelector('input[name="blog-length"]:checked').value;
+                const customKeywords = customKeywordsInput.value.trim();
+                let contentBrief = document.getElementById('content-brief-display').value.trim();
+                
+                let wordCountPrompt;
+                switch(lengthValue) {
+                    case 'short': wordCountPrompt = 'around 500 words'; break;
+                    case 'medium': wordCountPrompt = 'around 1000 words'; break;
+                    case 'long': wordCountPrompt = 'around 1500 words'; break;
+                    case 'custom':
+                        const customWords = customWordCountInput.value;
+                        wordCountPrompt = customWords ? `around ${customWords} words` : 'around 1000 words';
+                        break;
+                }
+                
+                const outputLanguage = document.getElementById('output-language').value;
+                let prompt = `Write a blog post about "${topic}". The tone should be ${tone}. The length should be ${wordCountPrompt}. The output language must be ${outputLanguage}.`;
+                
+                if (contentBrief) {
+                    prompt += `\n\nUse the following content brief as a strong guideline:\n\n--- CONTENT BRIEF ---\n${contentBrief}\n--- END BRIEF ---`;
+                }
+                
+                // --- NEW: Image placeholder instruction ---
+                if (uploadedImages.length > 0) {
+                    prompt += `\n\nIMPORTANT: To include the images I've provided, insert placeholders like [IMAGE-1], [IMAGE-2], etc., into the text where they would be most appropriate. You have ${uploadedImages.length} images available.`;
+                }
+
+                const articleType = document.getElementById('article-type').value;
+                const readability = document.getElementById('text-readability').value;
+                const country = document.getElementById('target-country').value;
+                const targetUrlsContainer = document.getElementById('target-urls-container');
+                const targetUrls = Array.from(targetUrlsContainer.querySelectorAll('span')).map(item => item.textContent).join(', ');
+                const elementsToInclude = [
+                    document.getElementById('include-conclusion').checked && 'a conclusion',
+                    document.getElementById('include-tables').checked && 'tables',
+                    document.getElementById('include-h1').checked && 'a main H1 title',
+                    document.getElementById('include-h2').checked && 'H2 subheadings',
+                    document.getElementById('include-h3').checked && 'H3 subheadings',
+                    document.getElementById('include-lists').checked && 'bulleted or numbered lists',
+                    document.getElementById('include-italics').checked && 'italicized text for emphasis',
+                    document.getElementById('include-quotes').checked && 'blockquotes',
+                    document.getElementById('include-takeaways').checked && 'a "Key Takeaways" section',
+                    document.getElementById('include-faq').checked && 'an FAQ section',
+                    document.getElementById('include-bold').checked && 'bold text for important terms'
+                ].filter(Boolean);
+
+                prompt += `\nIt should be written as a "${articleType}" with a "${readability}" readability level.`
+                if (country) prompt += ` The content should be targeted towards an audience in ${country}.`;
+                if (elementsToInclude.length > 0) prompt += `\nPlease ensure the article includes: ${elementsToInclude.join(', ')}.`;
+                if (customKeywords && !contentBrief) { 
+                    prompt += `\n\nNaturally integrate these keywords: ${customKeywords}.`;
+                }
+                if (targetUrls) {
+                    prompt += `\n\nAnalyze the style of these URLs for reference: ${targetUrls}. Do not copy content.`;
+                }
+                prompt += "\nFormat the final output in clean, semantic HTML. Do not wrap the HTML in markdown backticks."
+                return prompt;
+            };
+            
+            const runPostGenerationAnalysis = async (htmlContent) => {
+                analysisWidgetsContainer.innerHTML = ''; // Clear previous results
+                
+                // Run analyses in parallel
+                const [gradeHtml, checklistHtml, densityHtml] = await Promise.all([
+                    gradeContent(htmlContent),
+                    generateSeoChecklist(htmlContent),
+                    calculateAndDisplayKeywordDensity(htmlContent)
+                ]);
+
+                // Append new results
+                if (gradeHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', gradeHtml);
+                if (checklistHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', checklistHtml);
+                if (densityHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', densityHtml);
+            };
+
+            const generateLsiKeywords = async () => {
+                const topic = document.getElementById('blog-topic').value;
+                if (!topic) { showNotification('Please enter a topic first.', 'error'); return; }
+                const prompt = `List 10-15 Latent Semantic Indexing (LSI) keywords for the topic: "${topic}". Return them as a comma-separated list.`;
+                const result = await callGeminiApi(prompt);
+                if (result) {
+                    customKeywordsInput.value = result.replace(/['"]+/g, '').trim(); // Clean quotes
+                    showNotification('LSI keywords generated and added!', 'success');
+                }
+            };
+
+            const generateTopicIdeas = async () => {
+                const keyword = document.getElementById('topic-idea-keyword').value;
+                if (!keyword) { showNotification('Please enter a keyword for topic ideas.', 'error'); return; }
+                const prompt = `Generate a list of 5 engaging blog post titles for the keyword "${keyword}". Return only the list, with no introductory text.`;
+                const result = await callGeminiApi(prompt);
+                if (result) {
+                    const ideas = result.split('\n').filter(idea => idea.trim() !== '');
+                    const resultContainer = document.getElementById('topic-ideas-result');
+                    resultContainer.innerHTML = '';
+                    ideas.forEach(ideaText => {
+                        const ideaEl = document.createElement('div');
+                        ideaEl.textContent = ideaText.replace(/^\d+\.\s*/, '');
+                        ideaEl.className = 'p-2 rounded topic-idea-item';
+                        ideaEl.onclick = () => {
+                            document.getElementById('blog-topic').value = ideaEl.textContent;
+                            showNotification(`Topic "${ideaEl.textContent}" selected!`, 'success');
+                        };
+                        resultContainer.appendChild(ideaEl);
+                    });
+                }
+            };
+
+            const createContentBrief = async () => {
+                const keyword = document.getElementById('blog-topic').value;
+                if (!keyword) { showNotification('Please enter a blog topic to create a brief.', 'error'); return; }
+                const briefPrompt = `Generate a human-readable content brief for the keyword "${keyword}". Include a suggested H1 Title, Target Audience, a simple Outline, and LSI Keywords.`;
+                const briefText = await callGeminiApi(briefPrompt);
+                if(briefText){
+                    document.getElementById('content-brief-display').value = briefText;
+                    showNotification('Content brief generated and added!', 'success');
+                }
+            };
+            
+            // --- FIXED: Keyword Density Calculation ---
+            const calculateAndDisplayKeywordDensity = async (htmlContent) => {
+                const keywords = customKeywordsInput.value.trim().toLowerCase().split(',').filter(Boolean).map(k => k.trim());
+                if (keywords.length === 0) return '';
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                const textContent = tempDiv.textContent.toLowerCase() || "";
+                const words = textContent.split(/\s+/).filter(Boolean);
+                
+                if (words.length === 0) return '';
+
+                let resultHTML = '<div class="analysis-widget"><h3 class="font-semibold mb-2">Keyword Density</h3>';
+                keywords.forEach(keyword => {
+                    const count = (textContent.match(new RegExp(`\\b${keyword}\\b`, 'gi')) || []).length;
+                    const density = ((count / words.length) * 100).toFixed(2);
+                    resultHTML += `<div class="text-sm"><strong>${keyword}:</strong> ${density}% (${count})</div>`;
+                });
+                resultHTML += '</div>';
+                return resultHTML;
+            };
+            
+            const gradeContent = async (htmlContent) => {
+                const keyword = document.getElementById('blog-topic').value;
+                const prompt = `Based on the following article for the keyword "${keyword}", provide a letter grade (A-F) for its SEO potential and a short, bulleted list of 2-3 actionable tips for improvement. Format the response as: "Grade: [Your Grade]\n- [Tip 1]\n- [Tip 2]"\n\nArticle:\n${htmlContent}`;
+                const result = await callGeminiApi(prompt);
+                if (result) {
+                    const gradeMatch = result.match(/Grade: ([A-F])/);
+                    const grade = gradeMatch ? gradeMatch[1] : 'N/A';
+                    const tips = result.substring(result.indexOf('-')).split('\n').map(tip => `<li>${tip.replace('-', '').trim()}</li>`).join('');
+                    return `<div class="analysis-widget">
+                        <h3 class="font-semibold mb-2">Content Grade</h3>
+                        <div class="text-5xl font-bold text-center" style="color: var(--primary-color);">${grade}</div>
+                        <ul class="text-sm list-disc list-inside mt-2">${tips}</ul>
+                    </div>`;
+                }
+                return '';
+            };
+            
+            // --- NEW: On-Page SEO Checklist ---
+            const generateSeoChecklist = async (htmlContent) => {
+                const prompt = `Analyze the following HTML content for on-page SEO best practices. Create a checklist of 5-7 key items. For each item, state if it's "Done" or "Needs Improvement" and provide a very brief explanation. Key items to check: H1 tag presence, Meta Description (conceptual), Keyword in Title, Image Alt Tags, and Internal/External Links.
+                
+                Return the result as a simple list. Example:
+                - H1 Tag: Done
+                - Image Alt Tags: Needs Improvement
+                
+                HTML Content:
+                ${htmlContent}`;
+
+                const result = await callGeminiApi(prompt);
+                if (result) {
+                    let checklistHtml = '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3>';
+                    const items = result.split('\n').filter(Boolean);
+                    items.forEach(item => {
+                        const isDone = /: done/i.test(item);
+                        const icon = isDone 
+                            ? `<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>`
+                            : `<svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 102 0V6zm-1 8a1 1 0 110-2 1 1 0 010 2z" clip-rule="evenodd"></path></svg>`;
+                        checklistHtml += `<div class="checklist-item text-sm">${icon}<span>${item.replace('-', '').trim()}</span></div>`;
+                    });
+                    checklistHtml += '</div>';
+                    return checklistHtml;
+                }
+                return '';
+            };
+
+            const getDownloadableHtml = (content, title) => {
+                const metaDescription = 'A blog post written with AI.';
+                return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="${metaDescription}"><title>${title}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";line-height:1.6;max-width:800px;margin:2rem auto;padding:2rem;background-color:#fff;color:#111827}img{max-width:100%;height:auto;border-radius:8px}h1,h2,h3,h4,h5,h6{line-height:1.2;color:#111827;margin-top:1.5em;margin-bottom:.5em}a{color:#2200ff;text-decoration:none}a:hover{text-decoration:underline}p{margin-bottom:1em}ul,ol{padding-left:1.5em;margin-bottom:1em}li{margin-bottom:.5em}blockquote{border-left:4px solid #d1d5db;padding-left:1em;margin-left:0;font-style:italic;color:#6b7280}code{background-color:#f3f4f6;padding:.2em .4em;border-radius:4px;font-family:monospace}pre{background-color:#f3f4f6;padding:1em;border-radius:8px;overflow-x:auto}</style></head><body>${content}</body></html>`;
+            };
+            
+            init();
+        });
+    </script>
+</body>
+</html>
