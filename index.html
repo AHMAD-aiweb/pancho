@@ -243,12 +243,9 @@
                                 </div>
                             </div>
                             <div>
-                                <label for="target-url-input" class="font-semibold mb-2 block text-gray-800">Target Website URLs</label>
-                                <div class="flex gap-2">
-                                    <input type="text" id="target-url-input" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="https://example.com/article1">
-                                    <button id="add-target-url" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Add</button>
-                                </div>
-                                <div id="target-urls-container" class="mt-2 space-y-2"></div>
+                                <label for="competitor-url" class="font-semibold mb-2 block text-gray-800">Analyze Competitor Link</label>
+                                <input type="text" id="competitor-url" class="w-full p-2 border rounded bg-white border-gray-300 mb-2" placeholder="Enter competitor URL...">
+                                <textarea id="competitor-keywords" rows="2" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Enter comma-separated keywords from the competitor's article..."></textarea>
                             </div>
                             <div>
                                  <label for="image-url-input" class="font-semibold mb-2 block text-gray-800">Image URLs (comma-separated)</label>
@@ -278,6 +275,15 @@
 
     <!-- Updated Output Page Structure -->
     <div id="output-page" class="hidden p-4 md:p-8">
+        <!-- Mobile Controls (Top) -->
+        <div class="lg:hidden flex flex-wrap gap-2 mb-4">
+            <button data-action="back" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back</button>
+            <button data-action="regenerate" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Regenerate</button>
+            <button data-action="copy" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Copy</button>
+            <button data-action="pdf" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">PDF</button>
+            <button data-action="html" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">HTML</button>
+        </div>
+
         <div id="output-page-grid">
             <!-- Main Content Column -->
             <div id="output-content-wrapper" class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
@@ -285,12 +291,13 @@
             </div>
             <!-- Sidebar Column -->
             <div id="output-sidebar">
-                <!-- Action Buttons -->
-                <div id="output-controls" class="space-y-2 mb-6">
-                    <button id="back-to-editor" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back to Editor</button>
-                    <button id="copy-output-html" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Copy HTML</button>
-                    <button id="download-output-pdf" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Download PDF</button>
-                    <button id="download-output-html" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Download HTML</button>
+                <!-- Desktop Action Buttons -->
+                <div class="hidden lg:block space-y-2 mb-6">
+                    <button data-action="back" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back to Editor</button>
+                    <button data-action="regenerate" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Regenerate</button>
+                    <button data-action="copy" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Copy HTML</button>
+                    <button data-action="pdf" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Download PDF</button>
+                    <button data-action="html" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Download HTML</button>
                 </div>
                 <!-- Analysis Widgets will be injected here -->
                 <div id="analysis-widgets-container"></div>
@@ -356,25 +363,28 @@
                 document.getElementById('create-brief').addEventListener('click', createContentBrief);
 
                 outputPage.addEventListener('click', (e) => {
-                    const target = e.target.closest('button');
-                    if (!target) return;
+                    const button = e.target.closest('button[data-action]');
+                    if (!button) return;
 
-                    const targetId = target.id;
+                    const action = button.dataset.action;
                     const topic = document.getElementById('blog-topic').value || 'blog-post';
 
-                    switch (targetId) {
-                        case 'back-to-editor':
+                    switch (action) {
+                        case 'back':
                             mainInterface.classList.remove('hidden');
                             outputPage.classList.add('hidden');
                             break;
-                        case 'copy-output-html':
+                        case 'regenerate':
+                            generateBlog();
+                            break;
+                        case 'copy':
                             navigator.clipboard.writeText(currentGeneratedHtml).then(() => {
                                 showNotification('HTML copied to clipboard!', 'success');
                             }, () => {
                                 showNotification('Failed to copy HTML.', 'error');
                             });
                             break;
-                        case 'download-output-pdf':
+                        case 'pdf':
                             try {
                                 const element = document.createElement('div');
                                 element.innerHTML = getDownloadableHtml(currentGeneratedHtml, topic);
@@ -383,7 +393,7 @@
                                     margin: 0.5,
                                     filename: `${topic.replace(/ /g, '_')}.pdf`,
                                     image: { type: 'jpeg', quality: 0.98 },
-                                    html2canvas: { scale: 2, useCORS: true },
+                                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
                                     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
                                 }).save();
                             } catch (error) {
@@ -391,7 +401,7 @@
                                 showNotification('Could not generate PDF. Please try downloading as HTML.', 'error');
                             }
                             break;
-                        case 'download-output-html':
+                        case 'html':
                             const fullHtml = getDownloadableHtml(currentGeneratedHtml, topic);
                             const blob = new Blob([fullHtml], { type: 'text/html' });
                             const a = document.createElement('a');
@@ -412,7 +422,6 @@
                 ['dragleave', 'drop'].forEach(eventName => dragDropZone.addEventListener(eventName, () => dragDropZone.classList.remove('drag-over'), false));
                 dragDropZone.addEventListener('drop', handleDrop, false);
                 document.getElementById('add-image-from-url').addEventListener('click', addImagesFromUrl);
-                document.getElementById('add-target-url').addEventListener('click', addTargetUrl);
             };
 
             function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
@@ -466,22 +475,6 @@
                     wrapper.appendChild(removeBtn);
                     container.appendChild(wrapper);
                 });
-            }
-            
-            function addTargetUrl() {
-                const input = document.getElementById('target-url-input');
-                const url = input.value.trim();
-                if (url) {
-                    const container = document.getElementById('target-urls-container');
-                    const urlItem = document.createElement('div');
-                    urlItem.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
-                    urlItem.innerHTML = `<span class="text-sm text-gray-700 truncate">${url}</span><button class="text-red-500 font-bold text-lg">&times;</button>`;
-                    urlItem.querySelector('button').onclick = () => urlItem.remove();
-                    container.appendChild(urlItem);
-                    input.value = '';
-                } else {
-                    showNotification('Please enter a valid URL.', 'error');
-                }
             }
             
             const showLoader = (show) => { loader.style.display = show ? 'block' : 'none'; };
@@ -605,8 +598,13 @@
                 const articleType = document.getElementById('article-type').value;
                 const readability = document.getElementById('text-readability').value;
                 const country = document.getElementById('target-country').value;
-                const targetUrlsContainer = document.getElementById('target-urls-container');
-                const targetUrls = Array.from(targetUrlsContainer.querySelectorAll('span')).map(item => item.textContent).join(', ');
+                const competitorUrl = document.getElementById('competitor-url').value.trim();
+                const competitorKeywords = document.getElementById('competitor-keywords').value.trim();
+
+                if (competitorUrl) {
+                    prompt += `\n\nAnalyze the content from this competitor URL for inspiration: ${competitorUrl}. Focus on the following keywords if provided: ${competitorKeywords}. Do not copy content.`;
+                }
+
                 const elementsToInclude = [
                     document.getElementById('include-conclusion').checked && 'a conclusion',
                     document.getElementById('include-tables').checked && 'tables',
@@ -627,9 +625,7 @@
                 if (customKeywords && !contentBrief) { 
                     prompt += `\n\nNaturally integrate these keywords: ${customKeywords}.`;
                 }
-                if (targetUrls) {
-                    prompt += `\n\nAnalyze the style of these URLs for reference: ${targetUrls}. Do not copy content.`;
-                }
+                
                 prompt += "\nFormat the final output in clean, semantic HTML. Do not wrap the HTML in markdown backticks."
                 return prompt;
             };
@@ -660,7 +656,7 @@
             const generateTopicIdeas = async () => {
                 const keyword = document.getElementById('topic-idea-keyword').value;
                 if (!keyword) { showNotification('Please enter a keyword for topic ideas.', 'error'); return; }
-                const prompt = `Generate a list of 5 engaging blog post titles for the keyword "${keyword}". Return only the list, with no introductory text.`;
+                const prompt = `Generate a list of 10 to 15 engaging blog post titles for the keyword "${keyword}". Return only the list, with no introductory text.`;
                 const result = await callGeminiApi(prompt);
                 if (result) {
                     const ideas = result.split('\n').filter(idea => idea.trim() !== '');
@@ -761,7 +757,7 @@
 
             const getDownloadableHtml = (content, title) => {
                 const metaDescription = 'A blog post written with AI.';
-                return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="${metaDescription}"><title>${title}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";line-height:1.6;max-width:800px;margin:2rem auto;padding:2rem;background-color:#fff;color:#111827}img{max-width:100%;height:auto;border-radius:8px}h1,h2,h3,h4,h5,h6{line-height:1.2;color:#111827;margin-top:1.5em;margin-bottom:.5em}a{color:#2200ff;text-decoration:none}a:hover{text-decoration:underline}p{margin-bottom:1em}ul,ol{padding-left:1.5em;margin-bottom:1em}li{margin-bottom:.5em}blockquote{border-left:4px solid #d1d5db;padding-left:1em;margin-left:0;font-style:italic;color:#6b7280}code{background-color:#f3f4f6;padding:.2em .4em;border-radius:4px;font-family:monospace}pre{background-color:#f3f4f6;padding:1em;border-radius:8px;overflow-x:auto}</style></head><body>${content}</body></html>`;
+                return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="${metaDescription}"><title>${title}</title><style>body{font-family:Arial,sans-serif;line-height:1.6;max-width:800px;margin:2rem auto;padding:2rem;background-color:#ffffff !important;color:#000000 !important;-webkit-print-color-adjust:exact;}img{max-width:100%;height:auto;border-radius:8px}h1,h2,h3,h4,h5,h6{color:#000000}a{color:#0000ee}</style></head><body>${content}</body></html>`;
             };
             
             init();
