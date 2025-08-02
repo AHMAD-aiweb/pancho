@@ -6,7 +6,7 @@
     <title>AI SEO Blog Writer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         /* Custom Styles */
         body {
@@ -59,7 +59,7 @@
         }
         .notification.success { background-color: #28a745; }
         .notification.error { background-color: #dc3545; }
-        .notification.wait { background-color: #17a2b8; } /* New style for the wait message */
+        .notification.wait { background-color: #17a2b8; }
         
         #advanced-settings-toggle svg {
             transition: transform 0.3s;
@@ -144,9 +144,29 @@
         <!-- Main Content -->
         <main class="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <!-- Controls Column -->
+            <!-- SEO Sidebar (Column 1 on Mobile) -->
+            <div class="lg:col-span-1 order-first lg:order-last bg-white p-6 rounded-lg shadow-lg h-fit space-y-4 border border-gray-200">
+                <h2 class="text-xl font-semibold mb-2 border-b pb-2 border-gray-200">SEO Tools</h2>
+                <div class="border-b pb-4 border-gray-200">
+                    <h3 class="font-semibold mb-2">Topic Ideas</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="topic-idea-keyword" placeholder="Enter a broad keyword" class="w-full p-2 border rounded bg-white border-gray-300">
+                        <button id="generate-topic-ideas" class="btn-accent text-white font-bold py-2 px-4 rounded text-sm">Ideas</button>
+                    </div>
+                    <div id="topic-ideas-result" class="mt-2 text-sm space-y-1"></div>
+                </div>
+                <div class="border-b pb-4 border-gray-200">
+                    <h3 class="font-semibold mb-2">LSI Keyword Suggestions</h3>
+                    <button id="generate-lsi" class="w-full btn-secondary text-white font-bold py-2 px-4 rounded text-sm">Generate LSI Keywords</button>
+                </div>
+                <div class="border-b pb-4 border-gray-200">
+                    <h3 class="font-semibold mb-2">Content Brief</h3>
+                     <button id="create-brief" class="w-full btn-primary text-white font-bold py-2 px-4 rounded text-sm">Create Content Brief</button>
+                </div>
+            </div>
+
+            <!-- Controls Column (Column 2 on Mobile) -->
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-                <!-- AI Generation Controls -->
                 <div class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
                     <h2 class="text-xl font-semibold my-4 text-gray-900">AI Content Generation</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -182,36 +202,30 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
                         <div id="advanced-settings-container" class="hidden mt-4 space-y-4">
-                            <!-- Brand Voice -->
                             <div>
                                 <label for="brand-voice" class="font-semibold mb-2 block text-gray-800">Brand Voice & Tone Profile</label>
                                 <textarea id="brand-voice" rows="3" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="e.g., Witty and informal, uses emojis, avoids jargon..."></textarea>
                             </div>
-                            <!-- Article Type -->
                             <div>
                                 <label for="article-type" class="font-semibold mb-2 block text-gray-800">Article Type</label>
                                 <select id="article-type" class="w-full p-2 border rounded bg-white border-gray-300">
                                     <option>Blog Post</option><option>News Article</option><option>How-to Guide</option><option>Listicle</option><option>Review</option><option>Case Study</option>
                                 </select>
                             </div>
-                            <!-- Text Readability -->
                             <div>
                                 <label for="text-readability" class="font-semibold mb-2 block text-gray-800">Text Readability</label>
                                 <select id="text-readability" class="w-full p-2 border rounded bg-white border-gray-300">
                                     <option>Easy</option><option>Standard</option><option>Expert</option>
                                 </select>
                             </div>
-                            <!-- Target Country -->
                             <div>
                                 <label for="target-country" class="font-semibold mb-2 block text-gray-800">Target Country</label>
                                 <select id="target-country" class="w-full p-2 border rounded bg-white border-gray-300"></select>
                             </div>
-                            <!-- Output Language -->
                             <div>
                                 <label for="output-language" class="font-semibold mb-2 block text-gray-800">Output Language</label>
                                 <select id="output-language" class="w-full p-2 border rounded bg-white border-gray-300"></select>
                             </div>
-                            <!-- Content Elements -->
                             <div>
                                 <label class="font-semibold mb-2 block text-gray-800">Content Elements</label>
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-gray-700">
@@ -228,7 +242,6 @@
                                     <label class="flex items-center"><input type="checkbox" id="include-bold" class="mr-2" checked>Bold</label>
                                 </div>
                             </div>
-                            <!-- Target Website URL -->
                             <div>
                                 <label for="target-url-input" class="font-semibold mb-2 block text-gray-800">Target Website URLs</label>
                                 <div class="flex gap-2">
@@ -237,7 +250,6 @@
                                 </div>
                                 <div id="target-urls-container" class="mt-2 space-y-2"></div>
                             </div>
-                            <!-- Image URL -->
                             <div>
                                  <label for="image-url-input" class="font-semibold mb-2 block text-gray-800">Image URLs (comma-separated)</label>
                                  <div class="flex gap-2">
@@ -245,11 +257,12 @@
                                      <button id="add-image-from-url" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Add</button>
                                  </div>
                             </div>
-                            <!-- Drag and Drop Image Upload -->
                             <div>
-                                <label class="font-semibold mb-2 block text-gray-800">Drag-and-Drop Image Upload</label>
+                                <label class="font-semibold mb-2 block text-gray-800">Image Upload</label>
+                                <input type="file" id="file-upload" class="hidden" multiple accept="image/*">
+                                <button id="upload-from-device-btn" class="w-full mb-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">Upload from Device</button>
                                 <div id="drag-drop-zone" class="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
-                                    <p class="text-gray-500">Drag & drop images here</p>
+                                    <p class="text-gray-500">...or drag & drop images here</p>
                                 </div>
                                 <div id="image-preview-container" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <!-- Image previews will be added here -->
@@ -258,27 +271,6 @@
                         </div>
                     </div>
                     <button id="generate-blog" class="mt-6 w-full btn-primary text-white font-bold py-2 px-4 rounded">Generate & Open Blog Post</button>
-                </div>
-            </div>
-
-            <!-- SEO Sidebar -->
-            <div class="bg-white p-6 rounded-lg shadow-lg h-fit space-y-4 border border-gray-200">
-                <h2 class="text-xl font-semibold mb-2 border-b pb-2 border-gray-200">SEO Analysis & Tools</h2>
-                <div class="border-b pb-4 border-gray-200">
-                    <h3 class="font-semibold mb-2">Topic Ideas</h3>
-                    <div class="flex gap-2">
-                        <input type="text" id="topic-idea-keyword" placeholder="Enter a broad keyword" class="w-full p-2 border rounded bg-white border-gray-300">
-                        <button id="generate-topic-ideas" class="btn-accent text-white font-bold py-2 px-4 rounded text-sm">Ideas</button>
-                    </div>
-                    <div id="topic-ideas-result" class="mt-2 text-sm space-y-1"></div>
-                </div>
-                <div class="border-b pb-4 border-gray-200">
-                    <h3 class="font-semibold mb-2">LSI Keyword Suggestions</h3>
-                    <button id="generate-lsi" class="w-full btn-secondary text-white font-bold py-2 px-4 rounded text-sm">Generate LSI Keywords</button>
-                </div>
-                <div class="border-b pb-4 border-gray-200">
-                    <h3 class="font-semibold mb-2">Content Brief</h3>
-                     <button id="create-brief" class="w-full btn-primary text-white font-bold py-2 px-4 rounded text-sm">Create Content Brief</button>
                 </div>
             </div>
         </main>
@@ -322,12 +314,13 @@
             const mainInterface = document.getElementById('main-interface');
             const outputPage = document.getElementById('output-page');
             const outputContent = document.getElementById('output-content');
-            const outputControls = document.getElementById('output-controls');
             const analysisWidgetsContainer = document.getElementById('analysis-widgets-container');
+            const fileUploadInput = document.getElementById('file-upload');
+            const uploadFromDeviceBtn = document.getElementById('upload-from-device-btn');
 
             // --- APPLICATION STATE ---
             let uploadedImages = [];
-            let currentGeneratedHtml = ''; // Store the latest generated HTML
+            let currentGeneratedHtml = '';
 
             // --- INITIALIZATION ---
             const init = () => {
@@ -362,9 +355,11 @@
                 document.getElementById('generate-topic-ideas').addEventListener('click', generateTopicIdeas);
                 document.getElementById('create-brief').addEventListener('click', createContentBrief);
 
-                // Event Delegation for Output Page Buttons
                 outputPage.addEventListener('click', (e) => {
-                    const targetId = e.target.id;
+                    const target = e.target.closest('button');
+                    if (!target) return;
+
+                    const targetId = target.id;
                     const topic = document.getElementById('blog-topic').value || 'blog-post';
 
                     switch (targetId) {
@@ -373,26 +368,24 @@
                             outputPage.classList.add('hidden');
                             break;
                         case 'copy-output-html':
-                            const textarea = document.createElement('textarea');
-                            textarea.value = currentGeneratedHtml;
-                            document.body.appendChild(textarea);
-                            textarea.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(textarea);
-                            showNotification('HTML copied to clipboard!', 'success');
+                            navigator.clipboard.writeText(currentGeneratedHtml).then(() => {
+                                showNotification('HTML copied to clipboard!', 'success');
+                            }, () => {
+                                showNotification('Failed to copy HTML.', 'error');
+                            });
                             break;
                         case 'download-output-pdf':
                             try {
                                 const element = document.createElement('div');
                                 element.innerHTML = getDownloadableHtml(currentGeneratedHtml, topic);
                                 showNotification('Preparing PDF, please wait...', 'wait', 5000);
-                                html2pdf(element.querySelector('body'), {
+                                html2pdf().from(element.firstChild).set({
                                     margin: 0.5,
                                     filename: `${topic.replace(/ /g, '_')}.pdf`,
                                     image: { type: 'jpeg', quality: 0.98 },
                                     html2canvas: { scale: 2, useCORS: true },
                                     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-                                });
+                                }).save();
                             } catch (error) {
                                 console.error("PDF generation failed:", error);
                                 showNotification('Could not generate PDF. Please try downloading as HTML.', 'error');
@@ -411,6 +404,9 @@
                     }
                 });
 
+                // Image Upload Listeners
+                uploadFromDeviceBtn.addEventListener('click', () => fileUploadInput.click());
+                fileUploadInput.addEventListener('change', (e) => handleFiles(e.target.files));
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dragDropZone.addEventListener(eventName, preventDefaults, false));
                 ['dragenter', 'dragover'].forEach(eventName => dragDropZone.addEventListener(eventName, () => dragDropZone.classList.add('drag-over'), false));
                 ['dragleave', 'drop'].forEach(eventName => dragDropZone.addEventListener(eventName, () => dragDropZone.classList.remove('drag-over'), false));
@@ -488,7 +484,6 @@
                 }
             }
             
-            // --- UI UTILITIES ---
             const showLoader = (show) => { loader.style.display = show ? 'block' : 'none'; };
             const showNotification = (message, type = 'success', duration = 3000) => {
                 notification.textContent = message;
@@ -498,8 +493,8 @@
             };
 
             const populateCountries = () => {
-                const countries = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo, Democratic Republic of the","Congo, Republic of the","Costa Rica","Cote d'Ivoire","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar (Burma)","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
-                countries.forEach(country => {
+                const countries = ["United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "Spain", "India", "Brazil", "Mexico", "Global"];
+                countries.sort().forEach(country => {
                     const option = document.createElement('option');
                     option.value = country; option.textContent = country;
                     countryDropdown.appendChild(option);
@@ -516,7 +511,6 @@
                 });
             };
 
-            // --- GEMINI API INTEGRATION ---
             async function callGeminiApi(prompt) {
                 console.log("Calling Gemini API...");
                 showLoader(true);
@@ -549,7 +543,6 @@
                 }
             }
 
-            // --- AI FEATURE IMPLEMENTATIONS ---
             const generateBlog = async () => {
                 const topic = document.getElementById('blog-topic').value;
                 if (!topic) {
@@ -656,11 +649,11 @@
             const generateLsiKeywords = async () => {
                 const topic = document.getElementById('blog-topic').value;
                 if (!topic) { showNotification('Please enter a topic first.', 'error'); return; }
-                const prompt = `List at least 50 Latent Semantic Indexing (LSI) keywords for the topic: "${topic}". These keywords should be suitable for a natural density of 0.5% to 3% within a blog post. Return them as a single comma-separated list.`;
+                const prompt = `List at least 100 Latent Semantic Indexing (LSI) keywords for the topic: "${topic}". These keywords should be suitable for a natural density of 0.5% to 3% within a blog post. Return them as a single comma-separated list.`;
                 const result = await callGeminiApi(prompt);
                 if (result) {
                     customKeywordsInput.value = result.replace(/['".*]+/g, '').trim();
-                    showNotification('50+ LSI keywords generated!', 'success');
+                    showNotification('100+ LSI keywords generated!', 'success');
                 }
             };
 
@@ -736,15 +729,9 @@
             };
             
             const generateSeoChecklist = async (htmlContent) => {
-                const prompt = `Analyze the following HTML content for on-page SEO best practices. Create a checklist of 5-7 key items. Return a valid JSON array of objects with the keys "item", "status" ("Done" or "Needs Improvement"), and "explanation".
+                const prompt = `Analyze the following HTML content for on-page SEO best practices. Create a checklist of 5-7 key items. Return ONLY a valid JSON array of objects with the keys "item", "status" ("Done" or "Needs Improvement"), and "explanation". Do not include any other text or markdown.
 
                 Key items to check: H1 tag presence, Meta Description (conceptual), Keyword in Title, Image Alt Tags, and Internal/External Links.
-
-                Example JSON response:
-                [
-                  {"item": "H1 Tag", "status": "Done", "explanation": "A single H1 tag is present."},
-                  {"item": "Image Alt Tags", "status": "Needs Improvement", "explanation": "Some images are missing alt attributes."}
-                ]
 
                 HTML Content:
                 ${htmlContent}`;
@@ -752,7 +739,8 @@
                 const result = await callGeminiApi(prompt);
                 if (result) {
                     try {
-                        const checklistData = JSON.parse(result);
+                        const cleanedResult = result.substring(result.indexOf('['), result.lastIndexOf(']') + 1);
+                        const checklistData = JSON.parse(cleanedResult);
                         let checklistHtml = '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3>';
                         checklistData.forEach(item => {
                             const isDone = item.status === 'Done';
@@ -764,7 +752,7 @@
                         checklistHtml += '</div>';
                         return checklistHtml;
                     } catch (e) {
-                        console.error("Failed to parse SEO checklist JSON:", e);
+                        console.error("Failed to parse SEO checklist JSON:", e, "Raw result:", result);
                         return '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3><p class="text-sm text-red-500">Could not retrieve analysis.</p></div>';
                     }
                 }
