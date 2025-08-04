@@ -22,36 +22,52 @@
             --accent-color: #FF00DD;
         }
         
+        /* Updated Loader Styles */
+        .loader-container {
+            display: none; /* Hidden by default */
+            position: fixed;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
         .loader {
             border: 4px solid #f3f3f3;
             border-top: 4px solid var(--primary-color);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10000;
-            display: none;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        body.loading-active {
+            pointer-events: none;
+        }
+        body.loading-active .loader-container {
+            pointer-events: auto;
+        }
 
+        /* Updated Notification Styles for better visibility */
         .notification {
             position: fixed;
             bottom: 20px;
-            right: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             padding: 1rem 1.5rem;
             border-radius: 0.5rem;
             color: white;
             display: none;
-            z-index: 1000;
+            z-index: 10001; /* Ensure it's above the loader overlay */
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
+            max-width: 90%;
+            text-align: center;
         }
         .notification.show {
             display: block;
@@ -63,6 +79,10 @@
         
         #advanced-settings-toggle svg {
             transition: transform 0.3s;
+        }
+        #advanced-settings-container {
+            transition: all 0.3s ease-in-out;
+            overflow: hidden; /* Important for smooth transition */
         }
         #advanced-settings-container.hidden {
             display: none;
@@ -124,12 +144,56 @@
             margin-right: 0.5rem;
             flex-shrink: 0;
         }
+        
+        /* How-to-use Guide Styles */
+        .tour-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        }
+        .tour-step {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 350px;
+            z-index: 10001; /* High z-index to ensure visibility */
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (min-width: 768px) {
+            .tour-step {
+                left: auto;
+                right: 20px;
+                transform: none;
+                width: auto;
+            }
+        }
+
+        .tour-highlight {
+            box-shadow: 0 0 0 4px var(--primary-color);
+            border-radius: 0.25rem;
+            transition: box-shadow 0.3s;
+            position: relative;
+            z-index: 9999;
+        }
 
     </style>
 </head>
 <body class="bg-white text-gray-800">
 
-    <div id="loader" class="loader"></div>
+    <div id="loader" class="loader-container">
+        <div class="loader"></div>
+        <p class="mt-4 text-lg text-gray-700 font-semibold">Please wait, we are trying to do our best...</p>
+    </div>
     <div id="notification" class="notification"></div>
 
     <div id="main-interface">
@@ -145,9 +209,9 @@
         <main class="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- SEO Sidebar (Column 1 on Mobile) -->
-            <div class="lg:col-span-1 order-first lg:order-last bg-white p-6 rounded-lg shadow-lg h-fit space-y-4 border border-gray-200">
+            <div id="seo-tools-sidebar" class="lg:col-span-1 order-first lg:order-last bg-white p-6 rounded-lg shadow-lg h-fit space-y-4 border border-gray-200">
                 <h2 class="text-xl font-semibold mb-2 border-b pb-2 border-gray-200">SEO Tools</h2>
-                <div class="border-b pb-4 border-gray-200">
+                <div id="topic-ideas-tool" class="border-b pb-4 border-gray-200">
                     <h3 class="font-semibold mb-2">Topic Ideas</h3>
                     <div class="flex gap-2">
                         <input type="text" id="topic-idea-keyword" placeholder="Enter a broad keyword" class="w-full p-2 border rounded bg-white border-gray-300">
@@ -155,11 +219,11 @@
                     </div>
                     <div id="topic-ideas-result" class="mt-2 text-sm space-y-1"></div>
                 </div>
-                <div class="border-b pb-4 border-gray-200">
+                <div id="lsi-keywords-tool" class="border-b pb-4 border-gray-200">
                     <h3 class="font-semibold mb-2">LSI Keyword Suggestions</h3>
                     <button id="generate-lsi" class="w-full btn-secondary text-white font-bold py-2 px-4 rounded text-sm">Generate LSI Keywords</button>
                 </div>
-                <div class="border-b pb-4 border-gray-200">
+                <div id="content-brief-tool" class="border-b pb-4 border-gray-200">
                     <h3 class="font-semibold mb-2">Content Brief</h3>
                      <button id="create-brief" class="w-full btn-primary text-white font-bold py-2 px-4 rounded text-sm">Create Content Brief</button>
                 </div>
@@ -167,7 +231,7 @@
 
             <!-- Controls Column (Column 2 on Mobile) -->
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-                <div class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <div id="content-generation-panel" class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
                     <h2 class="text-xl font-semibold my-4 text-gray-900">AI Content Generation</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input type="text" id="blog-topic" placeholder="Enter your blog topic or keyword" class="w-full p-2 border rounded bg-white border-gray-300">
@@ -180,11 +244,10 @@
                         <textarea id="content-brief-display" rows="6" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Click 'Create Content Brief' in the sidebar to generate a brief here..."></textarea>
                     </div>
                     <div class="mt-4">
-                        <label for="custom-semantic-keywords" class="font-semibold mb-2 block text-gray-800">Your Semantic Keywords & Density Tracking</label>
+                        <label for="custom-semantic-keywords" class="font-semibold mb-2 block text-gray-800">Your Semantic Keywords</label>
                         <textarea id="custom-semantic-keywords" rows="3" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Enter comma-separated keywords to include and track..."></textarea>
-                         <div id="keyword-density-result" class="mt-2 text-sm text-gray-600">Keyword density will be analyzed on the output page.</div>
                     </div>
-                    <div class="mt-4">
+                    <div id="blog-length-tool" class="mt-4">
                         <label class="block mb-2 font-medium text-gray-800">Blog Length:</label>
                         <div class="flex items-center space-x-4 flex-wrap text-gray-700">
                             <label><input type="radio" name="blog-length" value="short" checked class="mr-1"> Short (~500)</label>
@@ -202,23 +265,19 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
                         <div id="advanced-settings-container" class="hidden mt-4 space-y-4">
-                            <div>
-                                <label for="brand-voice" class="font-semibold mb-2 block text-gray-800">Brand Voice & Tone Profile</label>
-                                <textarea id="brand-voice" rows="3" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="e.g., Witty and informal, uses emojis, avoids jargon..."></textarea>
-                            </div>
-                            <div>
+                            <div id="article-type-tool">
                                 <label for="article-type" class="font-semibold mb-2 block text-gray-800">Article Type</label>
                                 <select id="article-type" class="w-full p-2 border rounded bg-white border-gray-300">
                                     <option>Blog Post</option><option>News Article</option><option>How-to Guide</option><option>Listicle</option><option>Review</option><option>Case Study</option>
                                 </select>
                             </div>
-                            <div>
+                            <div id="text-readability-tool">
                                 <label for="text-readability" class="font-semibold mb-2 block text-gray-800">Text Readability</label>
                                 <select id="text-readability" class="w-full p-2 border rounded bg-white border-gray-300">
                                     <option>Easy</option><option>Standard</option><option>Expert</option>
                                 </select>
                             </div>
-                            <div>
+                            <div id="localization-tool">
                                 <label for="target-country" class="font-semibold mb-2 block text-gray-800">Target Country</label>
                                 <select id="target-country" class="w-full p-2 border rounded bg-white border-gray-300"></select>
                             </div>
@@ -226,7 +285,7 @@
                                 <label for="output-language" class="font-semibold mb-2 block text-gray-800">Output Language</label>
                                 <select id="output-language" class="w-full p-2 border rounded bg-white border-gray-300"></select>
                             </div>
-                            <div>
+                            <div id="content-elements-tool">
                                 <label class="font-semibold mb-2 block text-gray-800">Content Elements</label>
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-gray-700">
                                     <label class="flex items-center"><input type="checkbox" id="include-conclusion" class="mr-2" checked>Conclusion</label>
@@ -242,12 +301,33 @@
                                     <label class="flex items-center"><input type="checkbox" id="include-bold" class="mr-2" checked>Bold</label>
                                 </div>
                             </div>
-                            <div>
-                                <label for="competitor-url" class="font-semibold mb-2 block text-gray-800">Analyze Competitor Link</label>
-                                <input type="text" id="competitor-url" class="w-full p-2 border rounded bg-white border-gray-300 mb-2" placeholder="Enter competitor URL...">
-                                <textarea id="competitor-keywords" rows="2" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Enter comma-separated keywords from the competitor's article..."></textarea>
+                            <div id="target-urls-tool">
+                                <label for="target-url-input" class="font-semibold mb-2 block text-gray-800">Target Website URLs</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="target-url-input" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="https://example.com/article1">
+                                    <button id="add-target-url" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Add</button>
+                                </div>
+                                <div id="target-urls-container" class="mt-2 space-y-2"></div>
                             </div>
-                            <div>
+                            <div id="internal-linking-tool">
+                                <label class="font-semibold mb-2 block text-gray-800">Internal Linking</label>
+                                <div class="space-y-2">
+                                    <input type="text" id="internal-link-url" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Internal URL (e.g., /about-us)">
+                                    <input type="text" id="internal-link-keywords" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Target Keywords (e.g., about our company)">
+                                    <button id="add-internal-link-btn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Add Internal Link</button>
+                                </div>
+                                <div id="internal-links-container" class="mt-2 space-y-2"></div>
+                            </div>
+                            <div id="external-linking-tool">
+                                <label class="font-semibold mb-2 block text-gray-800">External Linking</label>
+                                <div class="space-y-2">
+                                    <input type="text" id="external-link-url" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="External URL (e.g., https://example.com)">
+                                    <input type="text" id="external-link-keywords" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="Target Keywords (e.g., industry statistics)">
+                                    <button id="add-external-link-btn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Add External Link</button>
+                                </div>
+                                <div id="external-links-container" class="mt-2 space-y-2"></div>
+                            </div>
+                            <div id="image-upload-tool">
                                  <label for="image-url-input" class="font-semibold mb-2 block text-gray-800">Image URLs (comma-separated)</label>
                                  <div class="flex gap-2">
                                      <input type="text" id="image-url-input" class="w-full p-2 border rounded bg-white border-gray-300" placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg">
@@ -276,11 +356,10 @@
     <!-- Updated Output Page Structure -->
     <div id="output-page" class="hidden p-4 md:p-8">
         <!-- Mobile Controls (Top) -->
-        <div class="lg:hidden flex flex-wrap gap-2 mb-4">
+        <div id="output-controls-mobile" class="lg:hidden flex flex-wrap gap-2 mb-4">
             <button data-action="back" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back</button>
             <button data-action="regenerate" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Regenerate</button>
             <button data-action="copy" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Copy</button>
-            <button data-action="pdf" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">PDF</button>
             <button data-action="html" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">HTML</button>
         </div>
 
@@ -292,11 +371,10 @@
             <!-- Sidebar Column -->
             <div id="output-sidebar">
                 <!-- Desktop Action Buttons -->
-                <div class="hidden lg:block space-y-2 mb-6">
+                <div id="output-controls-desktop" class="hidden lg:block space-y-2 mb-6">
                     <button data-action="back" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back to Editor</button>
                     <button data-action="regenerate" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Regenerate</button>
                     <button data-action="copy" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Copy HTML</button>
-                    <button data-action="pdf" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Download PDF</button>
                     <button data-action="html" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Download HTML</button>
                 </div>
                 <!-- Analysis Widgets will be injected here -->
@@ -305,6 +383,23 @@
         </div>
     </div>
     
+    <!-- How-to-use Guide HTML -->
+    <div id="tour-container" class="hidden">
+        <div id="tour-overlay" class="tour-overlay"></div>
+        <div id="tour-step" class="tour-step">
+            <p id="tour-text" class="mb-4"></p>
+            <div class="flex justify-between items-center">
+                <button id="tour-skip" class="text-gray-500 hover:text-gray-700 text-sm font-bold py-1 px-3">Skip</button>
+                <span id="tour-counter" class="text-sm text-gray-500"></span>
+                <div>
+                    <button id="tour-prev" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1 px-3 rounded mr-2">Prev</button>
+                    <button id="tour-next" class="btn-primary text-white font-bold py-1 px-3 rounded">Next</button>
+                    <button id="tour-finish" class="hidden btn-accent text-white font-bold py-1 px-3 rounded">Finish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- DOM ELEMENTS ---
@@ -328,12 +423,14 @@
             // --- APPLICATION STATE ---
             let uploadedImages = [];
             let currentGeneratedHtml = '';
+            let currentTour = 'main'; // 'main' or 'output'
 
             // --- INITIALIZATION ---
             const init = () => {
                 populateCountries();
                 populateLanguages();
                 addEventListeners();
+                startTour('main');
             };
             
             // --- EVENT LISTENERS SETUP ---
@@ -361,6 +458,9 @@
                 document.getElementById('generate-lsi').addEventListener('click', generateLsiKeywords);
                 document.getElementById('generate-topic-ideas').addEventListener('click', generateTopicIdeas);
                 document.getElementById('create-brief').addEventListener('click', createContentBrief);
+                document.getElementById('add-internal-link-btn').addEventListener('click', addInternalLink);
+                document.getElementById('add-external-link-btn').addEventListener('click', addExternalLink);
+
 
                 outputPage.addEventListener('click', (e) => {
                     const button = e.target.closest('button[data-action]');
@@ -371,6 +471,9 @@
 
                     switch (action) {
                         case 'back':
+                            // Cleanup output page before hiding
+                            outputContent.innerHTML = '';
+                            analysisWidgetsContainer.innerHTML = '';
                             mainInterface.classList.remove('hidden');
                             outputPage.classList.add('hidden');
                             break;
@@ -378,28 +481,7 @@
                             generateBlog();
                             break;
                         case 'copy':
-                            navigator.clipboard.writeText(currentGeneratedHtml).then(() => {
-                                showNotification('HTML copied to clipboard!', 'success');
-                            }, () => {
-                                showNotification('Failed to copy HTML.', 'error');
-                            });
-                            break;
-                        case 'pdf':
-                            try {
-                                const element = document.createElement('div');
-                                element.innerHTML = getDownloadableHtml(currentGeneratedHtml, topic);
-                                showNotification('Preparing PDF, please wait...', 'wait', 5000);
-                                html2pdf().from(element.firstChild).set({
-                                    margin: 0.5,
-                                    filename: `${topic.replace(/ /g, '_')}.pdf`,
-                                    image: { type: 'jpeg', quality: 0.98 },
-                                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-                                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-                                }).save();
-                            } catch (error) {
-                                console.error("PDF generation failed:", error);
-                                showNotification('Could not generate PDF. Please try downloading as HTML.', 'error');
-                            }
+                            copyToClipboard(currentGeneratedHtml);
                             break;
                         case 'html':
                             const fullHtml = getDownloadableHtml(currentGeneratedHtml, topic);
@@ -410,6 +492,9 @@
                             document.body.appendChild(a);
                             a.click();
                             document.body.removeChild(a);
+                            break;
+                        case 'improve-meta':
+                            improveMetaInfo();
                             break;
                     }
                 });
@@ -422,6 +507,24 @@
                 ['dragleave', 'drop'].forEach(eventName => dragDropZone.addEventListener(eventName, () => dragDropZone.classList.remove('drag-over'), false));
                 dragDropZone.addEventListener('drop', handleDrop, false);
                 document.getElementById('add-image-from-url').addEventListener('click', addImagesFromUrl);
+                document.getElementById('add-target-url').addEventListener('click', addTargetUrl);
+                
+                // Tour Listeners
+                document.getElementById('tour-next').addEventListener('click', () => {
+                    if (currentStep < tourSteps[currentTour].length - 1) {
+                        currentStep++;
+                        showTourStep(currentStep);
+                    }
+                });
+                document.getElementById('tour-prev').addEventListener('click', () => {
+                    if (currentStep > 0) {
+                        currentStep--;
+                        showTourStep(currentStep);
+                    }
+                });
+                document.getElementById('tour-finish').addEventListener('click', endTour);
+                document.getElementById('tour-skip').addEventListener('click', endTour);
+                document.getElementById('tour-overlay').addEventListener('click', endTour);
             };
 
             function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
@@ -459,25 +562,99 @@
                 container.innerHTML = '';
                 uploadedImages.forEach((image, index) => {
                     const wrapper = document.createElement('div');
-                    wrapper.className = 'relative';
+                    wrapper.className = 'relative group';
                     const img = document.createElement('img');
                     img.src = image.src;
                     img.alt = image.alt;
-                    img.className = 'w-full h-auto rounded-lg shadow-md';
+                    img.className = 'w-full h-24 object-cover rounded-lg shadow-md';
                     const removeBtn = document.createElement('button');
                     removeBtn.textContent = '×';
-                    removeBtn.className = 'absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-lg leading-none';
+                    removeBtn.className = 'absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-lg leading-none opacity-0 group-hover:opacity-100 transition-opacity';
                     removeBtn.onclick = () => {
                         uploadedImages.splice(index, 1);
                         renderImagePreviews();
                     };
+                    const altInput = document.createElement('input');
+                    altInput.type = 'text';
+                    altInput.className = 'w-full text-xs p-1 border rounded mt-1';
+                    altInput.placeholder = 'Enter alt text...';
+                    altInput.value = image.alt;
+                    altInput.oninput = (e) => {
+                        uploadedImages[index].alt = e.target.value;
+                    };
                     wrapper.appendChild(img);
                     wrapper.appendChild(removeBtn);
+                    wrapper.appendChild(altInput);
                     container.appendChild(wrapper);
                 });
             }
             
-            const showLoader = (show) => { loader.style.display = show ? 'block' : 'none'; };
+            function addTargetUrl() {
+                const input = document.getElementById('target-url-input');
+                const url = input.value.trim();
+                if (url) {
+                    const container = document.getElementById('target-urls-container');
+                    const urlItem = document.createElement('div');
+                    urlItem.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
+                    urlItem.innerHTML = `<span class="text-sm text-gray-700 truncate">${url}</span><button class="text-red-500 font-bold text-lg">&times;</button>`;
+                    urlItem.querySelector('button').onclick = () => urlItem.remove();
+                    container.appendChild(urlItem);
+                    input.value = '';
+                } else {
+                    showNotification('Please enter a valid URL.', 'error');
+                }
+            }
+
+            function addInternalLink() {
+                const urlInput = document.getElementById('internal-link-url');
+                const keywordsInput = document.getElementById('internal-link-keywords');
+                const url = urlInput.value.trim();
+                const keywords = keywordsInput.value.trim();
+
+                if (url && keywords) {
+                    const container = document.getElementById('internal-links-container');
+                    const linkItem = document.createElement('div');
+                    linkItem.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
+                    linkItem.innerHTML = `<div class="text-sm text-gray-700"><strong>URL:</strong> ${url}<br><strong>Keywords:</strong> ${keywords}</div><button class="text-red-500 font-bold text-lg">&times;</button>`;
+                    linkItem.querySelector('button').onclick = () => linkItem.remove();
+                    container.appendChild(linkItem);
+                    urlInput.value = '';
+                    keywordsInput.value = '';
+                } else {
+                    showNotification('Please provide both a URL and keywords for the internal link.', 'error');
+                }
+            }
+
+            function addExternalLink() {
+                const urlInput = document.getElementById('external-link-url');
+                const keywordsInput = document.getElementById('external-link-keywords');
+                const url = urlInput.value.trim();
+                const keywords = keywordsInput.value.trim();
+
+                if (url && keywords) {
+                    const container = document.getElementById('external-links-container');
+                    const linkItem = document.createElement('div');
+                    linkItem.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
+                    linkItem.innerHTML = `<div class="text-sm text-gray-700"><strong>URL:</strong> ${url}<br><strong>Keywords:</strong> ${keywords}</div><button class="text-red-500 font-bold text-lg">&times;</button>`;
+                    linkItem.querySelector('button').onclick = () => linkItem.remove();
+                    container.appendChild(linkItem);
+                    urlInput.value = '';
+                    keywordsInput.value = '';
+                } else {
+                    showNotification('Please provide both a URL and keywords for the external link.', 'error');
+                }
+            }
+            
+            const showLoader = (show) => {
+                const loaderContainer = document.getElementById('loader');
+                if (show) {
+                    loaderContainer.style.display = 'flex';
+                    document.body.classList.add('loading-active');
+                } else {
+                    loaderContainer.style.display = 'none';
+                    document.body.classList.remove('loading-active');
+                }
+            };
             const showNotification = (message, type = 'success', duration = 3000) => {
                 notification.textContent = message;
                 notification.className = `notification ${type}`;
@@ -543,7 +720,7 @@
                     return;
                 }
                 
-                showNotification('Generating your blog post... this may take a minute or two.', 'wait', 120000);
+                showNotification('please wait we are doing our best it may take 1 to 2 min', 'wait', 120000);
                 
                 let prompt = buildGenerationPrompt();
                 let generatedHtml = await callGeminiApi(prompt);
@@ -559,10 +736,15 @@
 
                     mainInterface.classList.add('hidden');
                     outputPage.classList.remove('hidden');
-                    outputContent.innerHTML = generatedHtml;
+                    
+                    // Generate meta info first to prepend it
+                    const metaInfo = await generateMetaInfo(generatedHtml, true);
+                    outputContent.innerHTML = metaInfo.html + generatedHtml;
+
                     showNotification('Blog post generated!', 'success');
                     
-                    runPostGenerationAnalysis(generatedHtml);
+                    await runPostGenerationAnalysis(generatedHtml, metaInfo.data);
+                    startTour('output'); // Start the output page tour
                 }
             };
 
@@ -598,11 +780,43 @@
                 const articleType = document.getElementById('article-type').value;
                 const readability = document.getElementById('text-readability').value;
                 const country = document.getElementById('target-country').value;
-                const competitorUrl = document.getElementById('competitor-url').value.trim();
-                const competitorKeywords = document.getElementById('competitor-keywords').value.trim();
+                const targetUrlsContainer = document.getElementById('target-urls-container');
+                const targetUrls = Array.from(targetUrlsContainer.querySelectorAll('span')).map(item => item.textContent).join(', ');
+                
+                const internalLinksContainer = document.getElementById('internal-links-container');
+                const internalLinks = Array.from(internalLinksContainer.children).map(item => {
+                    const text = item.querySelector('div').innerText;
+                    const urlMatch = text.match(/URL: (.*)/);
+                    const keywordsMatch = text.match(/Keywords: (.*)/);
+                    return {
+                        url: urlMatch ? urlMatch[1] : '',
+                        keywords: keywordsMatch ? keywordsMatch[1] : ''
+                    };
+                });
 
-                if (competitorUrl) {
-                    prompt += `\n\nAnalyze the content from this competitor URL for inspiration: ${competitorUrl}. Focus on the following keywords if provided: ${competitorKeywords}. Do not copy content.`;
+                if (internalLinks.length > 0) {
+                    prompt += "\n\nIncorporate the following internal links naturally within the content, using the provided keywords as anchor text where appropriate:\n";
+                    internalLinks.forEach(link => {
+                        prompt += `- Link to "${link.url}" using anchor text related to "${link.keywords}".\n`;
+                    });
+                }
+                
+                const externalLinksContainer = document.getElementById('external-links-container');
+                const externalLinks = Array.from(externalLinksContainer.children).map(item => {
+                    const text = item.querySelector('div').innerText;
+                    const urlMatch = text.match(/URL: (.*)/);
+                    const keywordsMatch = text.match(/Keywords: (.*)/);
+                    return {
+                        url: urlMatch ? urlMatch[1] : '',
+                        keywords: keywordsMatch ? keywordsMatch[1] : ''
+                    };
+                });
+
+                if (externalLinks.length > 0) {
+                    prompt += "\n\nIncorporate the following external links naturally within the content, using the provided keywords as anchor text where appropriate:\n";
+                    externalLinks.forEach(link => {
+                        prompt += `- Link to "${link.url}" using anchor text related to "${link.keywords}".\n`;
+                    });
                 }
 
                 const elementsToInclude = [
@@ -625,21 +839,36 @@
                 if (customKeywords && !contentBrief) { 
                     prompt += `\n\nNaturally integrate these keywords: ${customKeywords}.`;
                 }
-                
+                if (targetUrls) {
+                    prompt += `\n\nAnalyze the style of these URLs for reference: ${targetUrls}. Do not copy content.`;
+                }
                 prompt += "\nFormat the final output in clean, semantic HTML. Do not wrap the HTML in markdown backticks."
                 return prompt;
             };
             
-            const runPostGenerationAnalysis = async (htmlContent) => {
+            const runPostGenerationAnalysis = async (htmlContent, metaData) => {
                 analysisWidgetsContainer.innerHTML = ''; 
-                const [gradeHtml, checklistHtml, densityHtml] = await Promise.all([
-                    gradeContent(htmlContent),
-                    generateSeoChecklist(htmlContent),
-                    calculateAndDisplayKeywordDensity(htmlContent)
-                ]);
+                
+                const gradeHtml = await gradeContent(htmlContent);
                 if (gradeHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', gradeHtml);
+
+                const checklistHtml = await generateSeoChecklist(htmlContent);
                 if (checklistHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', checklistHtml);
-                if (densityHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', densityHtml);
+                
+                // Display the meta info in the sidebar widget
+                const metaWidgetHtml = `<div class="analysis-widget" id="meta-info-widget">
+                                <h3 class="font-semibold mb-2">Meta Title & Description</h3>
+                                <div class="mb-2">
+                                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                                    <textarea readonly class="w-full p-2 border rounded bg-gray-100 text-sm">${metaData.title}</textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                                    <textarea readonly class="w-full p-2 border rounded bg-gray-100 text-sm" rows="4">${metaData.description}</textarea>
+                                </div>
+                                <button data-action="improve-meta" class="mt-2 w-full btn-secondary text-white font-bold py-1 px-3 rounded text-sm">Improve It</button>
+                            </div>`;
+                analysisWidgetsContainer.insertAdjacentHTML('beforeend', metaWidgetHtml);
             };
 
             const generateLsiKeywords = async () => {
@@ -686,35 +915,19 @@
                 }
             };
             
-            const calculateAndDisplayKeywordDensity = async (htmlContent) => {
-                const keywords = customKeywordsInput.value.trim().toLowerCase().split(',').filter(Boolean).map(k => k.trim());
-                if (keywords.length === 0) return '';
-
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = htmlContent;
-                const textContent = tempDiv.textContent.toLowerCase() || "";
-                const words = textContent.split(/\s+/).filter(Boolean);
-                
-                if (words.length === 0) return '';
-
-                let resultHTML = '<div class="analysis-widget"><h3 class="font-semibold mb-2">Keyword Density</h3>';
-                keywords.forEach(keyword => {
-                    const count = (textContent.match(new RegExp(`\\b${keyword}\\b`, 'gi')) || []).length;
-                    const density = ((count / words.length) * 100).toFixed(2);
-                    resultHTML += `<div class="text-sm"><strong>${keyword}:</strong> ${density}% (${count})</div>`;
-                });
-                resultHTML += '</div>';
-                return resultHTML;
-            };
-            
             const gradeContent = async (htmlContent) => {
                 const keyword = document.getElementById('blog-topic').value;
-                const prompt = `Based on the following article for the keyword "${keyword}", provide a letter grade (A-F) for its SEO potential and a short, bulleted list of 2-3 actionable tips for improvement. Format the response as: "Grade: [Your Grade]\n- [Tip 1]\n- [Tip 2]"\n\nArticle:\n${htmlContent}`;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                const textContent = tempDiv.textContent || "";
+
+                const prompt = `Based on the following article text for the keyword "${keyword}", provide a letter grade (A-F) for its SEO potential and a short, bulleted list of 2-3 actionable tips for improvement. Format the response as: "Grade: [Your Grade]\n- [Tip 1]\n- [Tip 2]"\n\nArticle Text:\n${textContent.substring(0, 4000)}...`;
                 const result = await callGeminiApi(prompt);
                 if (result) {
                     const gradeMatch = result.match(/Grade: ([A-F])/);
                     const grade = gradeMatch ? gradeMatch[1] : 'N/A';
-                    const tips = result.substring(result.indexOf('-')).split('\n').map(tip => `<li>${tip.replace('-', '').trim()}</li>`).join('');
+                    const tipsMatch = result.match(/- .*/g);
+                    const tips = tipsMatch ? tipsMatch.map(tip => `<li>${tip.replace('-', '').trim()}</li>`).join('') : '';
                     return `<div class="analysis-widget">
                         <h3 class="font-semibold mb-2">Content Grade</h3>
                         <div class="text-5xl font-bold text-center" style="color: var(--primary-color);">${grade}</div>
@@ -725,18 +938,23 @@
             };
             
             const generateSeoChecklist = async (htmlContent) => {
-                const prompt = `Analyze the following HTML content for on-page SEO best practices. Create a checklist of 5-7 key items. Return ONLY a valid JSON array of objects with the keys "item", "status" ("Done" or "Needs Improvement"), and "explanation". Do not include any other text or markdown.
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                const textContent = tempDiv.textContent || "";
 
-                Key items to check: H1 tag presence, Meta Description (conceptual), Keyword in Title, Image Alt Tags, and Internal/External Links.
+                const prompt = `Analyze the following article text for on-page SEO best practices. Create a checklist of key items. Return ONLY a valid JSON array of objects with the keys "item", "status" ("Done" or "Needs Improvement"), and "explanation". Do not include any other text or markdown.
 
-                HTML Content:
-                ${htmlContent}`;
+                Key items to check: H1 Tag, Meta Description, Keyword in Title, Image Alt Tags, Internal Links, External Links.
+
+                Article Text:
+                ${textContent.substring(0, 4000)}...`;
 
                 const result = await callGeminiApi(prompt);
                 if (result) {
                     try {
-                        const cleanedResult = result.substring(result.indexOf('['), result.lastIndexOf(']') + 1);
-                        const checklistData = JSON.parse(cleanedResult);
+                        const jsonMatch = result.match(/\[[\s\S]*\]/);
+                        if (!jsonMatch) throw new Error("No JSON array found in response.");
+                        const checklistData = JSON.parse(jsonMatch[0]);
                         let checklistHtml = '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3>';
                         checklistData.forEach(item => {
                             const isDone = item.status === 'Done';
@@ -755,11 +973,188 @@
                 return '';
             };
 
+            const generateMetaInfo = async (htmlContent, returnObject = false) => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                const textContent = tempDiv.textContent || "";
+
+                const prompt = `Based on the following article content, generate an SEO-optimized meta title (under 60 characters) and a meta description (under 160 characters). Return ONLY a valid JSON object with the keys "title" and "description".
+
+                Article Content:
+                ${textContent.substring(0, 2000)}...`;
+
+                const result = await callGeminiApi(prompt);
+                if (result) {
+                    try {
+                        const jsonMatch = result.match(/{[\s\S]*}/);
+                        if (!jsonMatch) throw new Error("No JSON object found in response.");
+                        const metaData = JSON.parse(jsonMatch[0]);
+
+                        const metaHtml = `<div style="background-color: #f3f4f6; border-left: 4px solid var(--primary-color); padding: 1rem; margin-bottom: 2rem; border-radius: 0.25rem;">
+                                            <h3 style="font-size: 1.125rem; font-weight: 600; margin-top: 0; margin-bottom: 0.5rem;">Meta Title</h3>
+                                            <p style="margin-top: 0; margin-bottom: 1rem; font-style: italic;">${metaData.title}</p>
+                                            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Meta Description</h3>
+                                            <p style="margin-top: 0; margin-bottom: 0;">${metaData.description}</p>
+                                          </div>`;
+                        
+                        return { html: metaHtml, data: metaData };
+                    } catch (e) {
+                        console.error("Failed to parse Meta Info JSON:", e, "Raw result:", result);
+                        return { html: '', data: { title: '', description: '' } };
+                    }
+                }
+                return { html: '', data: { title: '', description: '' } };
+            };
+
+            const improveMetaInfo = async () => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = currentGeneratedHtml;
+                const textContent = tempDiv.textContent || "";
+
+                const prompt = `Based on the following article content, generate a new, improved, and SEO-optimized meta title (under 60 characters) and a meta description (under 160 characters). Return ONLY a valid JSON object with the keys "title" and "description".
+
+                Article Content:
+                ${textContent.substring(0, 2000)}...`;
+                
+                const result = await callGeminiApi(prompt);
+                if (result) {
+                    try {
+                        const jsonMatch = result.match(/{[\s\S]*}/);
+                        if (!jsonMatch) throw new Error("No JSON object found in response.");
+                        const metaData = JSON.parse(jsonMatch[0]);
+                        const metaWidget = document.getElementById('meta-info-widget');
+                        if(metaWidget) {
+                            metaWidget.querySelector('textarea:nth-of-type(1)').value = metaData.title;
+                            metaWidget.querySelector('textarea:nth-of-type(2)').value = metaData.description;
+                            showNotification('Meta info improved!', 'success');
+                        }
+                    } catch (e) {
+                        showNotification('Could not improve meta info.', 'error');
+                    }
+                }
+            };
+
             const getDownloadableHtml = (content, title) => {
                 const metaDescription = 'A blog post written with AI.';
-                return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="${metaDescription}"><title>${title}</title><style>body{font-family:Arial,sans-serif;line-height:1.6;max-width:800px;margin:2rem auto;padding:2rem;background-color:#ffffff !important;color:#000000 !important;-webkit-print-color-adjust:exact;}img{max-width:100%;height:auto;border-radius:8px}h1,h2,h3,h4,h5,h6{color:#000000}a{color:#0000ee}</style></head><body>${content}</body></html>`;
+                return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="${metaDescription}"><title>${title}</title><style>body{font-family:Arial,sans-serif;line-height:1.6;max-width:800px;margin:2rem auto;padding:2rem;background-color:#ffffff !important;color:#000000 !important;-webkit-print-color-adjust:exact;} * { background-color: transparent !important; color: #000000 !important; } img{max-width:100%;height:auto;border-radius:8px}h1,h2,h3,h4,h5,h6{color:#000000}a{color:#0000ee}</style></head><body>${content}</body></html>`;
+            };
+
+            const copyToClipboard = (text) => {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed'; // Prevent scrolling to bottom of page in MS Edge.
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showNotification('HTML copied to clipboard!', 'success');
+                } catch (err) {
+                    showNotification('Failed to copy HTML.', 'error');
+                }
+                document.body.removeChild(textarea);
+            }
+            
+            // --- How-to-use Guide Logic ---
+            let currentStep = 0;
+            let highlightedElement = null;
+            const tourSteps = {
+                main: [
+                    { element: '#blog-topic', text: 'Step 1: Start here! Enter your main blog topic or keyword. Being specific yields better results.' },
+                    { element: '#blog-tone', text: 'Step 2: Choose the voice. Select a tone that matches your brand and audience.' },
+                    { element: '#topic-ideas-tool', text: 'Step 3 (Optional): Need inspiration? Enter a broad keyword and click "Ideas" to generate engaging titles.' },
+                    { element: '#lsi-keywords-tool', text: 'Step 4 (SEO Boost): Click to generate 100+ related (LSI) keywords for your topic. They will be added below.' },
+                    { element: '#content-brief-tool', text: 'Step 5 (Structure): Click here to generate a full content brief, including a title, audience, outline, and keywords.' },
+                    { element: '#content-brief-display', text: 'Step 6: Review or edit your content brief here. The AI will follow these instructions closely.' },
+                    { element: '#custom-semantic-keywords', text: 'Step 7: Add your own comma-separated keywords or edit the generated list. The AI will prioritize these.' },
+                    { element: '#blog-length-tool', text: 'Step 8: Select the desired length for your article, from short to long, or set a custom word count.' },
+                    { element: '#advanced-settings-toggle', text: 'Step 9: Click to open the advanced settings for more granular control over the final output.' },
+                    { element: '#article-type-tool', text: 'Step 10 (Advanced): Specify the format, such as a "How-to Guide" or "Listicle".' },
+                    { element: '#text-readability-tool', text: 'Step 11 (Advanced): Set the reading level to "Easy", "Standard", or "Expert" to match your audience.' },
+                    { element: '#localization-tool', text: 'Step 12 (Advanced): Target your content to a specific country for better local relevance.' },
+                    { element: '#output-language', text: 'Step 13 (Advanced): Choose the language for the generated article.' },
+                    { element: '#content-elements-tool', text: 'Step 14 (Advanced): Select which HTML elements (like tables, lists, FAQs) the AI should include.' },
+                    { element: '#target-urls-tool', text: 'Step 15 (Advanced): Provide competitor or reference URLs for the AI to analyze for style (it will not copy content).' },
+                    { element: '#internal-linking-tool', text: 'Step 16 (Advanced): Add your own website links for the AI to include, boosting your internal linking strategy.' },
+                    { element: '#external-linking-tool', text: 'Step 17 (Advanced): Provide authoritative external links for the AI to cite, increasing credibility.' },
+                    { element: '#image-upload-tool', text: 'Step 18 (Visuals): Add images by URL, uploading from your device, or drag-and-drop. The AI will place them in the article.' },
+                    { element: '#generate-blog', text: 'Step 19: You\'re all set! Click here to generate your complete, SEO-optimized blog post.' }
+                ],
+                output: [
+                    { element: '#output-content-wrapper', text: 'Here is your generated blog post! You can read it here.' },
+                    { element: '#analysis-widgets-container', text: 'On the right, you can see the SEO analysis, including a content grade and checklist.' },
+                    { element: '#output-controls-desktop', text: 'Use these buttons to go back, regenerate, copy the HTML, or download the article as an HTML file.' }
+                ]
             };
             
+            function showTourStep(stepIndex) {
+                if (highlightedElement) {
+                    highlightedElement.classList.remove('tour-highlight');
+                }
+
+                const steps = tourSteps[currentTour];
+                const step = steps[stepIndex];
+                const targetElement = document.querySelector(step.element);
+
+                if (!targetElement) {
+                    console.warn(`Tour element not found: ${step.element}`);
+                    return;
+                }
+                
+                const tourContainer = document.getElementById('tour-container');
+                const tourText = document.getElementById('tour-text');
+                const tourCounter = document.getElementById('tour-counter');
+                const prevBtn = document.getElementById('tour-prev');
+                const nextBtn = document.getElementById('tour-next');
+                const finishBtn = document.getElementById('tour-finish');
+
+                tourText.textContent = step.text;
+                tourCounter.textContent = `${stepIndex + 1} / ${steps.length}`;
+                
+                highlightedElement = targetElement;
+                highlightedElement.classList.add('tour-highlight');
+                
+                const advancedContainer = document.getElementById('advanced-settings-container');
+                const needsToggle = advancedContainer.contains(targetElement) && advancedContainer.classList.contains('hidden');
+                
+                if (needsToggle) {
+                    advancedSettingsToggle.click();
+                }
+
+                // Always scroll the target element into view
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+                prevBtn.style.display = stepIndex === 0 ? 'none' : 'inline-block';
+                nextBtn.style.display = stepIndex === steps.length - 1 ? 'none' : 'inline-block';
+                finishBtn.style.display = stepIndex === steps.length - 1 ? 'inline-block' : 'none';
+
+                tourContainer.classList.remove('hidden');
+            }
+
+            function startTour(tourName) {
+                if (sessionStorage.getItem(`tourCompleted-${tourName}`)) {
+                    return;
+                }
+                currentTour = tourName;
+                currentStep = 0;
+                showTourStep(currentStep);
+            }
+
+            function endTour() {
+                if (highlightedElement) {
+                    highlightedElement.classList.remove('tour-highlight');
+                }
+                document.getElementById('tour-container').classList.add('hidden');
+                sessionStorage.setItem(`tourCompleted-${currentTour}`, 'true');
+                
+                const advancedContainer = document.getElementById('advanced-settings-container');
+                if (currentTour === 'main' && !advancedContainer.classList.contains('hidden')) {
+                     const currentStepElement = tourSteps.main[currentStep] ? document.querySelector(tourSteps.main[currentStep].element) : null;
+                    if (!currentStepElement || !advancedContainer.contains(currentStepElement)) {
+                        advancedSettingsToggle.click();
+                    }
+                }
+            }
+
             init();
         });
     </script>
