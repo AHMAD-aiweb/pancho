@@ -88,6 +88,10 @@
             display: none;
         }
         
+        .topic-ideas-container {
+            max-height: 200px;
+            overflow-y: auto;
+        }
         .topic-idea-item {
             cursor: pointer;
             transition: background-color 0.2s;
@@ -217,7 +221,7 @@
                         <input type="text" id="topic-idea-keyword" placeholder="Enter a broad keyword" class="w-full p-2 border rounded bg-white border-gray-300">
                         <button id="generate-topic-ideas" class="btn-accent text-white font-bold py-2 px-4 rounded text-sm">Ideas</button>
                     </div>
-                    <div id="topic-ideas-result" class="mt-2 text-sm space-y-1"></div>
+                    <div id="topic-ideas-result" class="mt-2 text-sm space-y-1 topic-ideas-container"></div>
                 </div>
                 <div id="lsi-keywords-tool" class="border-b pb-4 border-gray-200">
                     <h3 class="font-semibold mb-2">LSI Keyword Suggestions</h3>
@@ -357,6 +361,8 @@
     <div id="output-page" class="hidden p-4 md:p-8">
         <!-- Mobile Controls (Top) -->
         <div id="output-controls-mobile" class="lg:hidden flex flex-wrap gap-2 mb-4">
+            <button data-action="scroll-to-grade" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded">Grade</button>
+            <button data-action="scroll-to-checklist" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded">Checklist</button>
             <button data-action="back" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Back</button>
             <button data-action="regenerate" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Regenerate</button>
             <button data-action="copy" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Copy</button>
@@ -471,7 +477,6 @@
 
                     switch (action) {
                         case 'back':
-                            // Cleanup output page before hiding
                             outputContent.innerHTML = '';
                             analysisWidgetsContainer.innerHTML = '';
                             mainInterface.classList.remove('hidden');
@@ -493,9 +498,16 @@
                             a.click();
                             document.body.removeChild(a);
                             break;
-                        case 'improve-meta':
-                            improveMetaInfo();
+                        case 'scroll-to-grade': {
+                            const gradeWidget = document.getElementById('content-grade-widget');
+                            if (gradeWidget) gradeWidget.scrollIntoView({ behavior: 'smooth' });
                             break;
+                        }
+                        case 'scroll-to-checklist': {
+                            const checklistWidget = document.getElementById('seo-checklist-widget');
+                            if (checklistWidget) checklistWidget.scrollIntoView({ behavior: 'smooth' });
+                            break;
+                        }
                     }
                 });
 
@@ -535,7 +547,7 @@
                     if (file.type.startsWith('image/')) {
                         const reader = new FileReader();
                         reader.onload = (e) => {
-                            uploadedImages.push({ src: e.target.result, alt: file.name });
+                            uploadedImages.push({ src: e.target.result, alt: file.name, name: file.name });
                             renderImagePreviews();
                         };
                         reader.readAsDataURL(file);
@@ -548,7 +560,7 @@
                 const urlInput = document.getElementById('image-url-input');
                 const urls = urlInput.value.split(',').map(url => url.trim()).filter(Boolean);
                 if (urls.length > 0) {
-                    urls.forEach(url => uploadedImages.push({ src: url, alt: "Blog Image" }));
+                    urls.forEach(url => uploadedImages.push({ src: url, alt: "Blog Image", name: "image.jpg" }));
                     urlInput.value = '';
                     renderImagePreviews();
                     showNotification(`${urls.length} image(s) added!`, 'success');
@@ -684,7 +696,7 @@
             async function callGeminiApi(prompt) {
                 console.log("Calling Gemini API...");
                 showLoader(true);
-                const apiKey = "AIzaSyBYP_Az0Dy6lPlCDJv0obnjXo1H2rmdx4Y"; // The environment provides the key
+                const apiKey = "AIzaSyDhyuX3ZD9qJlrf4oSwWpMTRmdOM18uDOY"; // The environment provides the key
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
                 try {
@@ -729,7 +741,12 @@
                     generatedHtml = generatedHtml.replace(/```html\n?([\s\S]*?)\n?```/, '$1').trim();
                     generatedHtml = generatedHtml.replace(/\[IMAGE-(\d+)\]/g, (match, p1) => {
                         const index = parseInt(p1, 10) - 1;
-                        return (uploadedImages[index]) ? `<img src="${uploadedImages[index].src}" alt="${uploadedImages[index].alt}" class="my-4 rounded-lg shadow-md">` : '';
+                        const image = uploadedImages[index];
+                        if (image) {
+                            const heading = image.alt ? `<h3>${image.alt}</h3>` : '';
+                            return `${heading}<img src="${image.src}" alt="${image.alt}" class="my-4 rounded-lg shadow-md">`;
+                        }
+                        return '';
                     });
                     
                     currentGeneratedHtml = generatedHtml;
@@ -737,14 +754,13 @@
                     mainInterface.classList.add('hidden');
                     outputPage.classList.remove('hidden');
                     
-                    // Generate meta info first to prepend it
-                    const metaInfo = await generateMetaInfo(generatedHtml, true);
+                    const metaInfo = await generateMetaInfo(generatedHtml);
                     outputContent.innerHTML = metaInfo.html + generatedHtml;
 
                     showNotification('Blog post generated!', 'success');
                     
-                    await runPostGenerationAnalysis(generatedHtml, metaInfo.data);
-                    startTour('output'); // Start the output page tour
+                    await runPostGenerationAnalysis(generatedHtml);
+                    startTour('output');
                 }
             };
 
@@ -846,7 +862,7 @@
                 return prompt;
             };
             
-            const runPostGenerationAnalysis = async (htmlContent, metaData) => {
+            const runPostGenerationAnalysis = async (htmlContent) => {
                 analysisWidgetsContainer.innerHTML = ''; 
                 
                 const gradeHtml = await gradeContent(htmlContent);
@@ -854,21 +870,6 @@
 
                 const checklistHtml = await generateSeoChecklist(htmlContent);
                 if (checklistHtml) analysisWidgetsContainer.insertAdjacentHTML('beforeend', checklistHtml);
-                
-                // Display the meta info in the sidebar widget
-                const metaWidgetHtml = `<div class="analysis-widget" id="meta-info-widget">
-                                <h3 class="font-semibold mb-2">Meta Title & Description</h3>
-                                <div class="mb-2">
-                                    <label class="block text-sm font-medium text-gray-700">Title</label>
-                                    <textarea readonly class="w-full p-2 border rounded bg-gray-100 text-sm">${metaData.title}</textarea>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Description</label>
-                                    <textarea readonly class="w-full p-2 border rounded bg-gray-100 text-sm" rows="4">${metaData.description}</textarea>
-                                </div>
-                                <button data-action="improve-meta" class="mt-2 w-full btn-secondary text-white font-bold py-1 px-3 rounded text-sm">Improve It</button>
-                            </div>`;
-                analysisWidgetsContainer.insertAdjacentHTML('beforeend', metaWidgetHtml);
             };
 
             const generateLsiKeywords = async () => {
@@ -928,7 +929,7 @@
                     const grade = gradeMatch ? gradeMatch[1] : 'N/A';
                     const tipsMatch = result.match(/- .*/g);
                     const tips = tipsMatch ? tipsMatch.map(tip => `<li>${tip.replace('-', '').trim()}</li>`).join('') : '';
-                    return `<div class="analysis-widget">
+                    return `<div class="analysis-widget" id="content-grade-widget">
                         <h3 class="font-semibold mb-2">Content Grade</h3>
                         <div class="text-5xl font-bold text-center" style="color: var(--primary-color);">${grade}</div>
                         <ul class="text-sm list-disc list-inside mt-2">${tips}</ul>
@@ -944,7 +945,7 @@
 
                 const prompt = `Analyze the following article text for on-page SEO best practices. Create a checklist of key items. Return ONLY a valid JSON array of objects with the keys "item", "status" ("Done" or "Needs Improvement"), and "explanation". Do not include any other text or markdown.
 
-                Key items to check: H1 Tag, Meta Description, Keyword in Title, Image Alt Tags, Internal Links, External Links.
+                Key items to check: H1 Tag, H2 Tags, H3 Tags, Meta Description, Keyword in Title, Image Alt Tags, Internal Links, External Links.
 
                 Article Text:
                 ${textContent.substring(0, 4000)}...`;
@@ -955,7 +956,7 @@
                         const jsonMatch = result.match(/\[[\s\S]*\]/);
                         if (!jsonMatch) throw new Error("No JSON array found in response.");
                         const checklistData = JSON.parse(jsonMatch[0]);
-                        let checklistHtml = '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3>';
+                        let checklistHtml = '<div class="analysis-widget" id="seo-checklist-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3>';
                         checklistData.forEach(item => {
                             const isDone = item.status === 'Done';
                             const icon = isDone 
@@ -967,13 +968,13 @@
                         return checklistHtml;
                     } catch (e) {
                         console.error("Failed to parse SEO checklist JSON:", e, "Raw result:", result);
-                        return '<div class="analysis-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3><p class="text-sm text-red-500">Could not retrieve analysis.</p></div>';
+                        return '<div class="analysis-widget" id="seo-checklist-widget"><h3 class="font-semibold mb-2">On-Page SEO Checklist</h3><p class="text-sm text-red-500">Could not retrieve analysis.</p></div>';
                     }
                 }
                 return '';
             };
 
-            const generateMetaInfo = async (htmlContent, returnObject = false) => {
+            const generateMetaInfo = async (htmlContent) => {
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = htmlContent;
                 const textContent = tempDiv.textContent || "";
@@ -1004,34 +1005,6 @@
                     }
                 }
                 return { html: '', data: { title: '', description: '' } };
-            };
-
-            const improveMetaInfo = async () => {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = currentGeneratedHtml;
-                const textContent = tempDiv.textContent || "";
-
-                const prompt = `Based on the following article content, generate a new, improved, and SEO-optimized meta title (under 60 characters) and a meta description (under 160 characters). Return ONLY a valid JSON object with the keys "title" and "description".
-
-                Article Content:
-                ${textContent.substring(0, 2000)}...`;
-                
-                const result = await callGeminiApi(prompt);
-                if (result) {
-                    try {
-                        const jsonMatch = result.match(/{[\s\S]*}/);
-                        if (!jsonMatch) throw new Error("No JSON object found in response.");
-                        const metaData = JSON.parse(jsonMatch[0]);
-                        const metaWidget = document.getElementById('meta-info-widget');
-                        if(metaWidget) {
-                            metaWidget.querySelector('textarea:nth-of-type(1)').value = metaData.title;
-                            metaWidget.querySelector('textarea:nth-of-type(2)').value = metaData.description;
-                            showNotification('Meta info improved!', 'success');
-                        }
-                    } catch (e) {
-                        showNotification('Could not improve meta info.', 'error');
-                    }
-                }
             };
 
             const getDownloadableHtml = (content, title) => {
